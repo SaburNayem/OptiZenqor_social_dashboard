@@ -1,0 +1,16 @@
+export const navigationItems = [
+  { id: 'overview', label: 'Overview', kind: 'admin', endpoint: '/admin/dashboard/overview' },
+  { id: 'users', label: 'Users', kind: 'admin', endpoint: '/admin/users' },
+  { id: 'content', label: 'Content Moderation', kind: 'admin', endpoint: '/admin/content' },
+  { id: 'reports', label: 'Reports', kind: 'admin', endpoint: '/admin/reports' },
+  { id: 'support', label: 'Support', kind: 'admin', endpoint: '/admin/support-operations' },
+  { id: 'marketplace', label: 'Marketplace', kind: 'app', endpoint: '/marketplace/products' },
+  { id: 'jobs', label: 'Jobs', kind: 'app', endpoint: '/jobs' },
+  { id: 'events', label: 'Events', kind: 'app', endpoint: '/events' },
+  { id: 'communities', label: 'Communities', kind: 'app', endpoint: '/communities' },
+  { id: 'pages', label: 'Pages', kind: 'app', endpoint: '/pages' },
+  { id: 'revenue', label: 'Revenue & Subs', kind: 'admin', endpoint: '/admin/dashboard/revenue' },
+  { id: 'notifications', label: 'Notifications', kind: 'admin', endpoint: '/admin/broadcast-campaigns' },
+  { id: 'settings', label: 'Settings', kind: 'admin', endpoint: '/admin/settings' },
+  { id: 'audit', label: 'Audit Logs', kind: 'admin', endpoint: '/admin/audit-logs' },
+]

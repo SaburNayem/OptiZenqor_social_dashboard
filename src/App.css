@@ -268,6 +268,37 @@ th {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.status-badge.good {
+  background: rgba(73, 190, 137, 0.18);
+  color: #9ef1bf;
+}
+
+.status-badge.warn {
+  background: rgba(244, 210, 122, 0.18);
+  color: #ffe29c;
+}
+
+.status-badge.bad {
+  background: rgba(255, 120, 120, 0.18);
+  color: #ffb8b8;
+}
+
+.status-badge.neutral {
+  background: rgba(255, 255, 255, 0.08);
+  color: #edf3ff;
+}
+
 .settings-form textarea {
   min-height: 260px;
   resize: vertical;

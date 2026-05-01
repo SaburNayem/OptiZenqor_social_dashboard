@@ -1,32 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { DashboardView } from './components/AdminViews'
+import { navigationItems } from './config/navigation'
 import {
   clearStoredSession,
   createApiClient,
-  extractItems,
   readStoredSession,
   writeStoredSession,
 } from './services/apiClient'
-
-const navigationItems = [
-  { id: 'overview', label: 'Overview', kind: 'admin', endpoint: '/admin/dashboard/overview' },
-  { id: 'users', label: 'Users', kind: 'admin', endpoint: '/admin/users' },
-  { id: 'content', label: 'Content', kind: 'admin', endpoint: '/admin/content' },
-  { id: 'reports', label: 'Reports', kind: 'admin', endpoint: '/admin/reports' },
-  { id: 'marketplace', label: 'Marketplace', kind: 'app', endpoint: '/marketplace/products' },
-  { id: 'jobs', label: 'Jobs', kind: 'app', endpoint: '/jobs' },
-  { id: 'events', label: 'Events', kind: 'app', endpoint: '/events' },
-  { id: 'communities', label: 'Communities', kind: 'app', endpoint: '/communities' },
-  { id: 'pages', label: 'Pages', kind: 'app', endpoint: '/pages' },
-  { id: 'support', label: 'Support', kind: 'admin', endpoint: '/admin/support-operations' },
-  { id: 'audit', label: 'Audit Logs', kind: 'admin', endpoint: '/admin/audit-logs' },
-  { id: 'settings', label: 'Settings', kind: 'admin', endpoint: '/admin/settings' },
-]
-
-function formatNumber(value) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
-}
 
 function App() {
   const [session, setSession] = useState(() => readStoredSession())
@@ -41,6 +22,7 @@ function App() {
     () => navigationItems.find((item) => item.id === activeView) ?? navigationItems[0],
     [activeView],
   )
+
   const apiClient = useMemo(
     () =>
       createApiClient({
@@ -57,61 +39,7 @@ function App() {
     [session],
   )
 
-  const apiRequest = useCallback(
-    (endpoint, options = {}) => apiClient.request(endpoint, options),
-    [apiClient],
-  )
-
-  async function handleLogin(event) {
-    event.preventDefault()
-    setLoginState((current) => ({ ...current, loading: true, error: '' }))
-
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'}/admin/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: loginState.email,
-          password: loginState.password,
-        }),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok || payload.success === false) {
-        throw new Error(payload.message || 'Login failed.')
-      }
-
-      const nextSession = {
-        accessToken: payload.data?.accessToken ?? payload.data?.token ?? '',
-        refreshToken: payload.data?.refreshToken ?? '',
-        admin: payload.data?.session ?? null,
-      }
-      setSession(nextSession)
-      writeStoredSession(nextSession)
-      setGlobalNotice('Admin session started successfully.')
-    } catch (error) {
-      setLoginState((current) => ({
-        ...current,
-        error: error instanceof Error ? error.message : 'Login failed.',
-      }))
-    } finally {
-      setLoginState((current) => ({ ...current, loading: false }))
-    }
-  }
-
-  async function handleLogout() {
-    try {
-      if (session?.accessToken) {
-        await apiRequest('/admin/auth/logout', { method: 'POST' })
-      }
-    } catch {
-      // Ignore logout failures while clearing local session.
-    } finally {
-      clearStoredSession()
-      setSession(null)
-      setViewState({ loading: false, error: '', payload: null })
-      setGlobalNotice('Admin session closed.')
-    }
-  }
+  const apiRequest = useCallback((endpoint, options = {}) => apiClient.request(endpoint, options), [apiClient])
 
   const loadView = useCallback(async (viewId) => {
     const item = navigationItems.find((entry) => entry.id === viewId)
@@ -178,6 +106,55 @@ function App() {
       cancelled = true
     }
   }, [activeItem.id, apiRequest, loadView, session?.accessToken])
+
+  async function handleLogin(event) {
+    event.preventDefault()
+    setLoginState((current) => ({ ...current, loading: true, error: '' }))
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'}/admin/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: loginState.email,
+          password: loginState.password,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok || payload.success === false) {
+        throw new Error(payload.message || 'Login failed.')
+      }
+
+      const nextSession = {
+        accessToken: payload.data?.accessToken ?? payload.data?.token ?? '',
+        refreshToken: payload.data?.refreshToken ?? '',
+        admin: payload.data?.session ?? null,
+      }
+      setSession(nextSession)
+      writeStoredSession(nextSession)
+      setGlobalNotice('Admin session started successfully.')
+    } catch (error) {
+      setLoginState((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : 'Login failed.',
+      }))
+    } finally {
+      setLoginState((current) => ({ ...current, loading: false }))
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      if (session?.accessToken) {
+        await apiRequest('/admin/auth/logout', { method: 'POST' })
+      }
+    } finally {
+      clearStoredSession()
+      setSession(null)
+      setViewState({ loading: false, error: '', payload: null })
+      setGlobalNotice('Admin session closed.')
+    }
+  }
 
   async function updateUser(userId, patch) {
     await apiRequest(`/admin/users/${userId}`, {
@@ -306,10 +283,10 @@ function App() {
         </header>
 
         {globalNotice ? <p className="notice-banner">{globalNotice}</p> : null}
-
         {isBootstrapping ? <section className="empty-panel">Restoring authenticated session...</section> : null}
         {viewState.loading && !isBootstrapping ? <section className="empty-panel">Loading live data...</section> : null}
         {viewState.error ? <section className="empty-panel error">{viewState.error}</section> : null}
+
         {!isBootstrapping && !viewState.loading && !viewState.error ? (
           <DashboardView
             viewId={activeItem.id}
@@ -324,258 +301,6 @@ function App() {
         ) : null}
       </section>
     </main>
-  )
-}
-
-function DashboardView({
-  viewId,
-  payload,
-  settingsDraft,
-  setSettingsDraft,
-  onUpdateUser,
-  onModerateContent,
-  onUpdateReport,
-  onSaveSettings,
-}) {
-  const data = payload?.data ?? {}
-
-  if (viewId === 'overview') {
-    const totals = data.totals ?? {}
-    const cards = [
-      { label: 'Users', value: totals.users },
-      { label: 'Active users', value: totals.activeUsers },
-      { label: 'Posts', value: totals.posts },
-      { label: 'Open reports', value: totals.openReports },
-      { label: 'Support queue', value: totals.supportTickets },
-      { label: 'Revenue', value: totals.revenue },
-    ]
-
-    return (
-      <section className="stack">
-        <div className="card-grid">
-          {cards.map((card) => (
-            <article key={card.label} className="metric-card">
-              <span>{card.label}</span>
-              <strong>{formatNumber(card.value)}</strong>
-            </article>
-          ))}
-        </div>
-        <article className="panel">
-          <h3>Operational health</h3>
-          <DataList
-            items={[
-              ['Moderation queue', data.health?.moderationQueue],
-              ['Support queue', data.health?.supportQueue],
-              ['Report queue', data.health?.reportQueue],
-            ]}
-          />
-        </article>
-      </section>
-    )
-  }
-
-  if (viewId === 'users') {
-    const items = extractItems(payload)
-    return (
-      <section className="stack">
-        <article className="panel">
-          <h3>User management</h3>
-          <Table
-            columns={['Name', 'Role', 'Status', 'Verification', 'Blocked', 'Actions']}
-            rows={items.map((item) => [
-              `${item.name} (${item.username})`,
-              item.role,
-              item.status,
-              item.verification,
-              item.blocked ? 'Yes' : 'No',
-              <div className="action-row" key={item.id}>
-                <button type="button" onClick={() => onUpdateUser(item.id, { blocked: !item.blocked })}>
-                  {item.blocked ? 'Unblock' : 'Block'}
-                </button>
-                <button type="button" onClick={() => onUpdateUser(item.id, { status: 'active' })}>
-                  Activate
-                </button>
-              </div>,
-            ])}
-          />
-        </article>
-      </section>
-    )
-  }
-
-  if (viewId === 'content') {
-    const items = extractItems(payload).map((item) => ({
-      ...item,
-      targetType: payload?.data?.targetType ?? 'post',
-    }))
-    return (
-      <article className="panel">
-        <h3>Content moderation</h3>
-        <Table
-          columns={['ID', 'Status', 'Preview', 'Created', 'Actions']}
-          rows={items.map((item) => [
-            item.id,
-            item.status ?? 'n/a',
-            item.caption ?? item.text ?? item.title ?? 'No preview text',
-            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
-            <div className="action-row" key={item.id}>
-              <button type="button" onClick={() => onModerateContent(item, { status: 'Under review' })}>
-                Review
-              </button>
-              <button type="button" onClick={() => onModerateContent(item, { remove: true, note: 'Removed by admin' })}>
-                Remove
-              </button>
-            </div>,
-          ])}
-        />
-      </article>
-    )
-  }
-
-  if (viewId === 'reports') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Reports queue</h3>
-        <Table
-          columns={['Reason', 'Status', 'Reporter', 'Target', 'Actions']}
-          rows={items.map((item) => [
-            item.reason,
-            item.status,
-            item.reporterName,
-            item.targetUserName ?? item.targetEntityId ?? 'Unknown',
-            <div className="action-row" key={item.id}>
-              <button type="button" onClick={() => onUpdateReport(item.id, { status: 'reviewing', note: 'Taken into review' })}>
-                Review
-              </button>
-              <button type="button" onClick={() => onUpdateReport(item.id, { status: 'resolved', note: 'Resolved from dashboard' })}>
-                Resolve
-              </button>
-            </div>,
-          ])}
-        />
-      </article>
-    )
-  }
-
-  if (viewId === 'support') {
-    const tickets = data.tickets ?? []
-    return (
-      <article className="panel">
-        <h3>Support tickets</h3>
-        <Table
-          columns={['Subject', 'Category', 'Status', 'Priority', 'Updated']}
-          rows={tickets.map((ticket) => [
-            ticket.subject,
-            ticket.category,
-            ticket.status,
-            ticket.priority,
-            new Date(ticket.updatedAt).toLocaleString(),
-          ])}
-        />
-      </article>
-    )
-  }
-
-  if (viewId === 'audit') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Audit trail</h3>
-        <Table
-          columns={['Action', 'Entity', 'Actor', 'Created']}
-          rows={items.map((item) => [
-            item.action,
-            `${item.entityType}${item.entityId ? `:${item.entityId}` : ''}`,
-            item.actorName ?? 'System',
-            new Date(item.createdAt).toLocaleString(),
-          ])}
-        />
-      </article>
-    )
-  }
-
-  if (viewId === 'settings') {
-    return (
-      <article className="panel">
-        <h3>Operational settings</h3>
-        <form className="settings-form" onSubmit={onSaveSettings}>
-          <textarea value={settingsDraft} onChange={(event) => setSettingsDraft(event.target.value)} />
-          <button type="submit">Save settings</button>
-        </form>
-      </article>
-    )
-  }
-
-  const items = extractItems(payload)
-  return (
-    <article className="panel">
-      <h3>{navigationItems.find((item) => item.id === viewId)?.label}</h3>
-      <Table
-        columns={resolveColumns(items)}
-        rows={items.map((item) => resolveColumns(items).map((column) => formatCell(item[column])))}
-      />
-    </article>
-  )
-}
-
-function resolveColumns(items) {
-  const first = items[0]
-  if (!first || typeof first !== 'object') {
-    return ['Message']
-  }
-  return Object.keys(first).slice(0, 5)
-}
-
-function formatCell(value) {
-  if (value == null) {
-    return '—'
-  }
-  if (typeof value === 'object') {
-    return JSON.stringify(value)
-  }
-  return String(value)
-}
-
-function DataList({ items }) {
-  return (
-    <dl className="data-list">
-      {items.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{formatNumber(value)}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-function Table({ columns, rows }) {
-  if (!rows.length) {
-    return <div className="empty-panel">The API returned no data for this view.</div>
-  }
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={`row-${rowIndex}`}>
-              {row.map((cell, cellIndex) => (
-                <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }
 
