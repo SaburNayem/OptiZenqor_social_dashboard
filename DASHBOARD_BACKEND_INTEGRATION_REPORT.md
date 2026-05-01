@@ -43,3 +43,9 @@ The local dashboard is no longer just the public Vite starter. It is a working a
 - `npm install`: pass in current workspace
 - `npm run lint`: pass
 - `npm run build`: pass
+# 2026-05-01 Update
+
+- Dashboard now keeps its API/session logic in `src/services/apiClient.js` instead of leaving transport/session helpers embedded only in `App.jsx`.
+- Verification after this pass:
+  - `npm run lint`: pass
+  - `npm run build`: pass

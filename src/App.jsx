@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
-const SESSION_STORAGE_KEY = 'optizenqor_admin_session'
+import {
+  clearStoredSession,
+  createApiClient,
+  extractItems,
+  readStoredSession,
+  writeStoredSession,
+} from './services/apiClient'
 
 const navigationItems = [
   { id: 'overview', label: 'Overview', kind: 'admin', endpoint: '/admin/dashboard/overview' },
@@ -18,56 +22,6 @@ const navigationItems = [
   { id: 'audit', label: 'Audit Logs', kind: 'admin', endpoint: '/admin/audit-logs' },
   { id: 'settings', label: 'Settings', kind: 'admin', endpoint: '/admin/settings' },
 ]
-
-function readStoredSession() {
-  try {
-    const raw = window.localStorage.getItem(SESSION_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-function writeStoredSession(session) {
-  window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
-}
-
-function clearStoredSession() {
-  window.localStorage.removeItem(SESSION_STORAGE_KEY)
-}
-
-function normalizePayload(payload) {
-  if (!payload || typeof payload !== 'object') {
-    return { success: false, message: 'Invalid API response.', data: null }
-  }
-  return {
-    success: payload.success !== false,
-    message: payload.message ?? 'Request completed.',
-    data: payload.data ?? payload,
-    raw: payload,
-  }
-}
-
-function extractItems(payload) {
-  const data = payload?.data
-  if (Array.isArray(data)) {
-    return data
-  }
-  if (Array.isArray(payload?.items)) {
-    return payload.items
-  }
-  if (Array.isArray(payload?.results)) {
-    return payload.results
-  }
-  if (data && typeof data === 'object') {
-    for (const key of Object.keys(data)) {
-      if (Array.isArray(data[key])) {
-        return data[key]
-      }
-    }
-  }
-  return []
-}
 
 function formatNumber(value) {
   const numeric = Number(value ?? 0)
@@ -87,73 +41,33 @@ function App() {
     () => navigationItems.find((item) => item.id === activeView) ?? navigationItems[0],
     [activeView],
   )
+  const apiClient = useMemo(
+    () =>
+      createApiClient({
+        getSession: () => session,
+        onSessionRefresh: (nextSession) => {
+          setSession(nextSession)
+          writeStoredSession(nextSession)
+        },
+        onUnauthorized: () => {
+          clearStoredSession()
+          setSession(null)
+        },
+      }),
+    [session],
+  )
 
-  const refreshSession = useCallback(async () => {
-    if (!session?.refreshToken) {
-      return false
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: session.refreshToken }),
-      })
-      const payload = await response.json().catch(() => ({}))
-      if (!response.ok || payload.success === false) {
-        throw new Error(payload.message || 'Unable to refresh session.')
-      }
-
-      const nextSession = {
-        accessToken: payload.data?.accessToken ?? payload.data?.token ?? '',
-        refreshToken: payload.data?.refreshToken ?? session.refreshToken,
-        admin: payload.data?.session ?? session.admin,
-      }
-      setSession(nextSession)
-      writeStoredSession(nextSession)
-      return true
-    } catch {
-      clearStoredSession()
-      setSession(null)
-      return false
-    }
-  }, [session])
-
-  const apiRequest = useCallback(async (endpoint, options = {}, allowRefresh = true) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
-    }
-
-    if (session?.accessToken) {
-      headers.Authorization = `Bearer ${session.accessToken}`
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
-      headers,
-    })
-    const payload = await response.json().catch(() => ({}))
-
-    if (response.status === 401 && allowRefresh && session?.refreshToken) {
-      const refreshed = await refreshSession()
-      if (refreshed) {
-        return apiRequest(endpoint, options, false)
-      }
-    }
-
-    if (!response.ok || payload.success === false) {
-      throw new Error(payload.message || payload.error || `Request failed with ${response.status}`)
-    }
-
-    return normalizePayload(payload)
-  }, [refreshSession, session])
+  const apiRequest = useCallback(
+    (endpoint, options = {}) => apiClient.request(endpoint, options),
+    [apiClient],
+  )
 
   async function handleLogin(event) {
     event.preventDefault()
     setLoginState((current) => ({ ...current, loading: true, error: '' }))
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -187,7 +101,7 @@ function App() {
   async function handleLogout() {
     try {
       if (session?.accessToken) {
-        await apiRequest('/admin/auth/logout', { method: 'POST' }, false)
+        await apiRequest('/admin/auth/logout', { method: 'POST' })
       }
     } catch {
       // Ignore logout failures while clearing local session.
