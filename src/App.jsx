@@ -79,7 +79,8 @@ function App() {
   const [activeView, setActiveView] = useState('overview')
   const [viewState, setViewState] = useState({ loading: false, error: '', payload: null })
   const [globalNotice, setGlobalNotice] = useState('')
-  const [loginState, setLoginState] = useState({ email: 'admin@optizenqor.app', password: 'admin123', loading: false, error: '' })
+  const [isBootstrapping, setIsBootstrapping] = useState(() => Boolean(readStoredSession()?.accessToken))
+  const [loginState, setLoginState] = useState({ email: '', password: '', loading: false, error: '' })
   const [settingsDraft, setSettingsDraft] = useState('{}')
 
   const activeItem = useMemo(
@@ -222,10 +223,47 @@ function App() {
 
   useEffect(() => {
     if (!session?.accessToken) {
+      setIsBootstrapping(false)
       return
     }
-    void loadView(activeItem.id)
-  }, [activeItem.id, loadView, session?.accessToken])
+
+    let cancelled = false
+
+    async function bootstrapSession() {
+      setIsBootstrapping(true)
+      try {
+        const payload = await apiRequest('/admin/auth/me')
+        if (cancelled) {
+          return
+        }
+        const nextSession = {
+          ...(readStoredSession() ?? {}),
+          admin: payload.data,
+        }
+        setSession(nextSession)
+        writeStoredSession(nextSession)
+        await loadView(activeItem.id)
+      } catch (error) {
+        if (cancelled) {
+          return
+        }
+        clearStoredSession()
+        setSession(null)
+        setViewState({ loading: false, error: '', payload: null })
+        setGlobalNotice(error instanceof Error ? error.message : 'Admin session expired.')
+      } finally {
+        if (!cancelled) {
+          setIsBootstrapping(false)
+        }
+      }
+    }
+
+    void bootstrapSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeItem.id, apiRequest, loadView, session?.accessToken])
 
   async function updateUser(userId, patch) {
     await apiRequest(`/admin/users/${userId}`, {
@@ -355,9 +393,10 @@ function App() {
 
         {globalNotice ? <p className="notice-banner">{globalNotice}</p> : null}
 
-        {viewState.loading ? <section className="empty-panel">Loading live data...</section> : null}
+        {isBootstrapping ? <section className="empty-panel">Restoring authenticated session...</section> : null}
+        {viewState.loading && !isBootstrapping ? <section className="empty-panel">Loading live data...</section> : null}
         {viewState.error ? <section className="empty-panel error">{viewState.error}</section> : null}
-        {!viewState.loading && !viewState.error ? (
+        {!isBootstrapping && !viewState.loading && !viewState.error ? (
           <DashboardView
             viewId={activeItem.id}
             payload={viewState.payload}
