@@ -6,9 +6,18 @@ function formatNumber(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
+function formatDate(value) {
+  if (!value) {
+    return 'Unknown'
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString()
+}
+
 function formatCell(value) {
   if (value == null || value === '') {
-    return '—'
+    return 'N/A'
   }
   if (typeof value === 'boolean') {
     return value ? 'Yes' : 'No'
@@ -27,6 +36,10 @@ function resolveColumns(items) {
   return Object.keys(first).slice(0, 6)
 }
 
+function resolveFilters(payload) {
+  return payload?.meta ?? payload?.data?.filters ?? {}
+}
+
 export function DashboardView({
   viewId,
   payload,
@@ -38,13 +51,28 @@ export function DashboardView({
   onSaveSettings,
   onRevokeAdminSession,
   onUpdatePremiumPlan,
+  onCreatePremiumPlan,
+  onDeletePremiumPlan,
+  onCreateNotificationCampaign,
   onUpdateSupportTicket,
   onUpdateNotificationDevice,
   onLoadView,
 }) {
   const data = payload?.data ?? {}
+  const filters = resolveFilters(payload)
   const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
   const [selectedNotificationDeviceId, setSelectedNotificationDeviceId] = useState(null)
+  const [premiumPlanDraft, setPremiumPlanDraft] = useState({
+    code: '',
+    name: '',
+    price: '',
+    billingInterval: 'monthly',
+  })
+  const [campaignDraft, setCampaignDraft] = useState({
+    name: '',
+    audience: 'all_users',
+    schedule: '',
+  })
 
   if (viewId === 'overview') {
     const totals = data.totals ?? {}
@@ -86,7 +114,20 @@ export function DashboardView({
     return (
       <section className="stack">
         <article className="panel">
-          <h3>User Management</h3>
+          <div className="panel-header">
+            <div>
+              <h3>User Management</h3>
+              <p className="panel-copy">Search the live user base and update account state with admin-protected mutations.</p>
+            </div>
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search name, username, email' },
+                { name: 'role', type: 'select', defaultValue: filters.role ?? '', options: ['', 'user', 'creator', 'business', 'seller', 'recruiter'] },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'Active', 'Suspended', 'Under review'] },
+              ]}
+              onSubmit={(query) => onLoadView('users', { page: 1, limit: 20, ...query })}
+            />
+          </div>
           <Table
             columns={['Name', 'Role', 'Status', 'Verification', 'Blocked', 'Actions']}
             rows={items.map((item) => [
@@ -116,9 +157,23 @@ export function DashboardView({
       ...item,
       targetType: item.targetType ?? data.targetType ?? 'post',
     }))
+
     return (
       <article className="panel">
-        <h3>Content Moderation</h3>
+        <div className="panel-header">
+          <div>
+            <h3>Content Moderation</h3>
+            <p className="panel-copy">Filter the live queue by content type and status, then review or remove items.</p>
+          </div>
+          <FilterForm
+            fields={[
+              { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search caption, text, title' },
+              { name: 'targetType', type: 'select', defaultValue: filters.targetType ?? '', options: ['', 'post', 'reel', 'story'] },
+              { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'Visible', 'Under review', 'Removed'] },
+            ]}
+            onSubmit={(query) => onLoadView('content', { page: 1, limit: 20, ...query })}
+          />
+        </div>
         <Table
           columns={['ID', 'Type', 'Status', 'Preview', 'Created', 'Actions']}
           rows={items.map((item) => [
@@ -126,7 +181,7 @@ export function DashboardView({
             item.targetType,
             <StatusBadge value={item.status ?? 'Unknown'} key={`${item.id}-status`} />,
             item.caption ?? item.text ?? item.title ?? 'No preview text',
-            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+            formatDate(item.createdAt),
             <div className="action-row" key={item.id}>
               <button type="button" onClick={() => onModerateContent(item, { status: 'Under review' })}>
                 Review
@@ -146,7 +201,19 @@ export function DashboardView({
     const items = extractItems(payload)
     return (
       <article className="panel">
-        <h3>Reports Queue</h3>
+        <div className="panel-header">
+          <div>
+            <h3>Reports Queue</h3>
+            <p className="panel-copy">Review incoming reports, move them into review, and close them from the same queue.</p>
+          </div>
+          <FilterForm
+            fields={[
+              { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search reason, reporter, target' },
+              { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'submitted', 'reviewing', 'resolved', 'rejected'] },
+            ]}
+            onSubmit={(query) => onLoadView('reports', { page: 1, limit: 20, ...query })}
+          />
+        </div>
         <Table
           columns={['Reason', 'Status', 'Reporter', 'Target', 'Actions']}
           rows={items.map((item) => [
@@ -172,7 +239,6 @@ export function DashboardView({
   if (viewId === 'support') {
     const tickets = data.tickets ?? []
     const actions = data.actions ?? []
-    const filters = data.filters ?? {}
     const resolvedSelectedTicketId =
       tickets.some((ticket) => ticket.id === selectedSupportTicketId)
         ? selectedSupportTicketId
@@ -187,37 +253,14 @@ export function DashboardView({
               <h3>Support Operations</h3>
               <p className="panel-copy">Search the live queue, change ticket state, and keep an audit-backed trail.</p>
             </div>
-            <form
-              className="filters-bar"
-              onSubmit={(event) => {
-                event.preventDefault()
-                const formData = new FormData(event.currentTarget)
-                onLoadView('support', {
-                  page: 1,
-                  limit: 20,
-                  search: String(formData.get('search') ?? '').trim(),
-                  status: String(formData.get('status') ?? '').trim(),
-                  priority: String(formData.get('priority') ?? '').trim(),
-                })
-              }}
-            >
-              <input name="search" type="search" defaultValue={filters.search ?? ''} placeholder="Search subject, category, user" />
-              <select name="status" defaultValue={filters.status ?? ''}>
-                <option value="">All statuses</option>
-                <option value="open">Open</option>
-                <option value="reviewing">Reviewing</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
-              </select>
-              <select name="priority" defaultValue={filters.priority ?? ''}>
-                <option value="">All priorities</option>
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-              <button type="submit">Apply</button>
-            </form>
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search subject, category, user' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'open', 'reviewing', 'resolved', 'closed'] },
+                { name: 'priority', type: 'select', defaultValue: filters.priority ?? '', options: ['', 'low', 'normal', 'high', 'urgent'] },
+              ]}
+              onSubmit={(query) => onLoadView('support', { page: 1, limit: 20, ...query })}
+            />
           </div>
           <Table
             columns={['Subject', 'User', 'Category', 'Status', 'Priority', 'Updated', 'Actions']}
@@ -229,7 +272,7 @@ export function DashboardView({
               ticket.category,
               <StatusBadge value={ticket.status} key={`${ticket.id}-status`} />,
               <StatusBadge value={ticket.priority} key={`${ticket.id}-priority`} />,
-              ticket.updatedAt ? new Date(ticket.updatedAt).toLocaleString() : 'Unknown',
+              formatDate(ticket.updatedAt),
               <div className="action-row" key={ticket.id}>
                 <button type="button" onClick={() => onUpdateSupportTicket(ticket.id, { status: 'reviewing' })}>
                   Review
@@ -296,7 +339,7 @@ export function DashboardView({
               rows={actions.map((action) => [
                 action.action,
                 action.entityId ?? 'Unknown ticket',
-                action.createdAt ? new Date(action.createdAt).toLocaleString() : 'Unknown',
+                formatDate(action.createdAt),
               ])}
             />
           </article>
@@ -318,7 +361,7 @@ export function DashboardView({
             `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             item.sellerName ?? item.sellerId ?? 'Unknown',
-            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+            formatDate(item.createdAt),
           ])}
         />
         <PaginationMeta payload={payload} />
@@ -432,18 +475,18 @@ export function DashboardView({
   }
 
   if (viewId === 'revenue') {
-    const cards = [
-      ['Total revenue', data.totalRevenue],
-      ['Completed transactions', data.completedTransactions],
-      ['Active subscriptions', data.activeSubscriptions],
-      ['Plans', data.plans?.length ?? 0],
-    ]
-
     return (
       <section className="stack">
         <article className="panel">
           <h3>Revenue Snapshot</h3>
-          <DataList items={cards} />
+          <DataList
+            items={[
+              ['Total revenue', data.totalRevenue],
+              ['Completed transactions', data.completedTransactions],
+              ['Active subscriptions', data.activeSubscriptions],
+              ['Plans', data.plans?.length ?? 0],
+            ]}
+          />
         </article>
         <article className="panel">
           <h3>Recent Transactions</h3>
@@ -453,7 +496,7 @@ export function DashboardView({
               item.id,
               formatNumber(item.amount),
               <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+              formatDate(item.createdAt),
             ])}
           />
         </article>
@@ -472,9 +515,9 @@ export function DashboardView({
             item.kind,
             item.label,
             item.userName ?? item.userId ?? 'Unknown',
-            item.amount == null ? '—' : formatNumber(item.amount),
+            item.amount == null ? 'N/A' : formatNumber(item.amount),
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+            formatDate(item.createdAt),
           ])}
         />
         <PaginationMeta payload={payload} />
@@ -495,7 +538,7 @@ export function DashboardView({
             formatNumber(item.amount),
             item.currency ?? 'BDT',
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+            formatDate(item.createdAt),
           ])}
         />
         <PaginationMeta payload={payload} />
@@ -516,7 +559,7 @@ export function DashboardView({
             item.provider,
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             item.autoRenew ? 'Yes' : 'No',
-            item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleString() : 'Unknown',
+            formatDate(item.currentPeriodEnd),
           ])}
         />
         <PaginationMeta payload={payload} />
@@ -527,58 +570,185 @@ export function DashboardView({
   if (viewId === 'premiumPlans') {
     const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Premium Plans</h3>
-        <Table
-          columns={['Name', 'Code', 'Price', 'Billing', 'Status', 'Actions']}
-          rows={items.map((item) => [
-            item.name,
-            item.code,
-            `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
-            item.billingInterval ?? 'monthly',
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            <div className="action-row" key={item.id}>
-              <button
-                type="button"
-                onClick={() =>
-                  onUpdatePremiumPlan(item.id, {
-                    isActive: !(item.isActive === true || item.status === 'active'),
-                  })
-                }
-              >
-                {item.isActive === true || item.status === 'active'
-                  ? 'Deactivate'
-                  : 'Activate'}
-              </button>
-            </div>,
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <section className="stack">
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Premium Plans</h3>
+              <p className="panel-copy">Manage the live plan catalog, including activation and deletion.</p>
+            </div>
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search plan code or name' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'active', 'inactive'] },
+              ]}
+              onSubmit={(query) => onLoadView('premiumPlans', { page: 1, limit: 20, ...query })}
+            />
+          </div>
+          <Table
+            columns={['Name', 'Code', 'Price', 'Billing', 'Status', 'Actions']}
+            rows={items.map((item) => [
+              item.name,
+              item.code,
+              `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
+              item.billingInterval ?? 'monthly',
+              <StatusBadge value={item.status} key={`${item.id}-status`} />,
+              <div className="action-row" key={item.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdatePremiumPlan(item.id, {
+                      isActive: !(item.isActive === true || item.status === 'active'),
+                    })
+                  }
+                >
+                  {item.isActive === true || item.status === 'active' ? 'Deactivate' : 'Activate'}
+                </button>
+                <button type="button" onClick={() => onDeletePremiumPlan(item.id)}>
+                  Delete
+                </button>
+              </div>,
+            ])}
+          />
+          <PaginationMeta payload={payload} />
+        </article>
+
+        <article className="panel">
+          <h3>Create Premium Plan</h3>
+          <form
+            className="inline-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onCreatePremiumPlan({
+                code: premiumPlanDraft.code.trim(),
+                name: premiumPlanDraft.name.trim(),
+                price: Number(premiumPlanDraft.price),
+                billingInterval: premiumPlanDraft.billingInterval,
+              })
+              setPremiumPlanDraft({
+                code: '',
+                name: '',
+                price: '',
+                billingInterval: 'monthly',
+              })
+            }}
+          >
+            <input
+              value={premiumPlanDraft.code}
+              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, code: event.target.value }))}
+              placeholder="PLAN_CODE"
+            />
+            <input
+              value={premiumPlanDraft.name}
+              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Plan name"
+            />
+            <input
+              value={premiumPlanDraft.price}
+              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, price: event.target.value }))}
+              placeholder="Price"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+            <select
+              value={premiumPlanDraft.billingInterval}
+              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, billingInterval: event.target.value }))}
+            >
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+            <button
+              type="submit"
+              disabled={!premiumPlanDraft.code.trim() || !premiumPlanDraft.name.trim() || !premiumPlanDraft.price}
+            >
+              Create plan
+            </button>
+          </form>
+        </article>
+      </section>
     )
   }
 
   if (viewId === 'notifications') {
     const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Notification Campaigns</h3>
-        <Table
-          columns={['Name', 'Audience', 'Status', 'Schedule']}
-          rows={items.map((item) => [
-            item.name ?? item.title ?? item.id,
-            item.audience ?? item.segmentId ?? 'All users',
-            <StatusBadge value={item.status ?? 'scheduled'} key={`${item.id}-status`} />,
-            item.schedule ?? item.createdAt ?? 'Not scheduled',
-          ])}
-        />
-      </article>
+      <section className="stack">
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Notification Campaigns</h3>
+              <p className="panel-copy">Review scheduled outreach and create new admin campaigns against the live backend.</p>
+            </div>
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search campaign or audience' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'scheduled', 'draft', 'sent'] },
+              ]}
+              onSubmit={(query) => onLoadView('notifications', { page: 1, limit: 20, ...query })}
+            />
+          </div>
+          <Table
+            columns={['Name', 'Audience', 'Status', 'Schedule']}
+            rows={items.map((item) => [
+              item.name ?? item.title ?? item.id,
+              item.audience ?? item.segmentId ?? 'All users',
+              <StatusBadge value={item.status ?? 'scheduled'} key={`${item.id}-status`} />,
+              item.schedule ?? item.createdAt ?? 'Not scheduled',
+            ])}
+          />
+          <PaginationMeta payload={payload} />
+        </article>
+
+        <article className="panel">
+          <h3>Create Notification Campaign</h3>
+          <form
+            className="inline-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onCreateNotificationCampaign({
+                name: campaignDraft.name.trim(),
+                audience: campaignDraft.audience,
+                schedule: campaignDraft.schedule.trim(),
+              })
+              setCampaignDraft({
+                name: '',
+                audience: 'all_users',
+                schedule: '',
+              })
+            }}
+          >
+            <input
+              value={campaignDraft.name}
+              onChange={(event) => setCampaignDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Campaign name"
+            />
+            <select
+              value={campaignDraft.audience}
+              onChange={(event) => setCampaignDraft((current) => ({ ...current, audience: event.target.value }))}
+            >
+              <option value="all_users">All users</option>
+              <option value="verified_users">Verified users</option>
+              <option value="premium">Premium subscribers</option>
+              <option value="creators">Creators</option>
+            </select>
+            <input
+              value={campaignDraft.schedule}
+              onChange={(event) => setCampaignDraft((current) => ({ ...current, schedule: event.target.value }))}
+              placeholder="2026-05-02T18:00:00Z"
+            />
+            <button type="submit" disabled={!campaignDraft.name.trim() || !campaignDraft.schedule.trim()}>
+              Create campaign
+            </button>
+          </form>
+        </article>
+      </section>
     )
   }
 
   if (viewId === 'notificationDevices') {
     const items = extractItems(payload)
-    const filters = data.filters ?? {}
     const resolvedSelectedDeviceId =
       items.some((item) => item.id === selectedNotificationDeviceId)
         ? selectedNotificationDeviceId
@@ -593,27 +763,13 @@ export function DashboardView({
               <h3>Notification Devices</h3>
               <p className="panel-copy">Review registered push endpoints and deactivate stale or risky devices.</p>
             </div>
-            <form
-              className="filters-bar"
-              onSubmit={(event) => {
-                event.preventDefault()
-                const formData = new FormData(event.currentTarget)
-                onLoadView('notificationDevices', {
-                  page: 1,
-                  limit: 20,
-                  search: String(formData.get('search') ?? '').trim(),
-                  status: String(formData.get('status') ?? '').trim(),
-                })
-              }}
-            >
-              <input name="search" type="search" defaultValue={filters.search ?? ''} placeholder="Search token, user, device" />
-              <select name="status" defaultValue={filters.status ?? ''}>
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <button type="submit">Apply</button>
-            </form>
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search token, user, device' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'active', 'inactive'] },
+              ]}
+              onSubmit={(query) => onLoadView('notificationDevices', { page: 1, limit: 20, ...query })}
+            />
           </div>
           <Table
             columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Actions']}
@@ -624,12 +780,9 @@ export function DashboardView({
               item.platform,
               item.deviceLabel ?? 'Unknown device',
               <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleString() : 'Unknown',
+              formatDate(item.lastSeenAt),
               <div className="action-row" key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => onUpdateNotificationDevice(item.id, { isActive: item.status !== 'active' })}
-                >
+                <button type="button" onClick={() => onUpdateNotificationDevice(item.id, { isActive: item.status !== 'active' })}>
                   {item.status === 'active' ? 'Deactivate' : 'Activate'}
                 </button>
               </div>,
@@ -665,7 +818,7 @@ export function DashboardView({
                 </div>
                 <div>
                   <dt>Last Seen</dt>
-                  <dd>{selectedDevice.lastSeenAt ? new Date(selectedDevice.lastSeenAt).toLocaleString() : 'Unknown'}</dd>
+                  <dd>{formatDate(selectedDevice.lastSeenAt)}</dd>
                 </div>
               </dl>
             ) : (
@@ -700,13 +853,9 @@ export function DashboardView({
             item.role ?? 'Admin',
             item.device ?? 'Dashboard session',
             <StatusBadge value={item.current ? 'active' : 'revoked'} key={`${item.id}-status`} />,
-            item.lastActive ? new Date(item.lastActive).toLocaleString() : 'Unknown',
+            formatDate(item.lastActive),
             <div className="action-row" key={item.id}>
-              <button
-                type="button"
-                onClick={() => onRevokeAdminSession(item.id)}
-                disabled={!item.current}
-              >
+              <button type="button" onClick={() => onRevokeAdminSession(item.id)} disabled={!item.current}>
                 Revoke
               </button>
             </div>,
@@ -727,7 +876,7 @@ export function DashboardView({
             item.action,
             `${item.entityType}${item.entityId ? `:${item.entityId}` : ''}`,
             item.actorName ?? 'System',
-            new Date(item.createdAt).toLocaleString(),
+            formatDate(item.createdAt),
           ])}
         />
         <PaginationMeta payload={payload} />
@@ -748,15 +897,58 @@ export function DashboardView({
   }
 
   const items = extractItems(payload)
+  const columns = resolveColumns(items)
   return (
     <article className="panel">
       <h3>{data.title ?? 'Live Module Data'}</h3>
       <Table
-        columns={resolveColumns(items)}
-        rows={items.map((item) => resolveColumns(items).map((column) => formatCell(item[column])))}
+        columns={columns}
+        rows={items.map((item) => columns.map((column) => formatCell(item[column])))}
       />
       <PaginationMeta payload={payload} />
     </article>
+  )
+}
+
+function FilterForm({ fields, onSubmit }) {
+  return (
+    <form
+      className="filters-bar"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const formData = new FormData(event.currentTarget)
+        const query = Object.fromEntries(
+          fields.map((field) => [field.name, String(formData.get(field.name) ?? '').trim()]),
+        )
+        onSubmit(query)
+      }}
+    >
+      {fields.map((field) => {
+        if (field.type === 'select') {
+          return (
+            <select key={field.name} name={field.name} defaultValue={field.defaultValue}>
+              <option value="">All {field.name}</option>
+              {field.options.filter(Boolean).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          )
+        }
+
+        return (
+          <input
+            key={field.name}
+            name={field.name}
+            type={field.type}
+            defaultValue={field.defaultValue}
+            placeholder={field.placeholder}
+          />
+        )
+      })}
+      <button type="submit">Apply</button>
+    </form>
   )
 }
 
@@ -768,7 +960,7 @@ function PaginationMeta({ payload }) {
 
   return (
     <p className="pagination-meta">
-      Page {pagination.page} of {pagination.totalPages} • {formatNumber(pagination.total)} total items
+      Page {pagination.page} of {pagination.totalPages} | {formatNumber(pagination.total)} total items
     </p>
   )
 }

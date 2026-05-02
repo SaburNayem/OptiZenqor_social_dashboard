@@ -233,6 +233,32 @@ function App() {
     await loadView('premiumPlans')
   }
 
+  async function createPremiumPlan(patch) {
+    await apiRequest('/admin/premium-plans', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Premium plan created successfully.')
+    await loadView('premiumPlans')
+  }
+
+  async function deletePremiumPlan(planId) {
+    await apiRequest(`/admin/premium-plans/${planId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Premium plan deleted successfully.')
+    await loadView('premiumPlans')
+  }
+
+  async function createNotificationCampaign(patch) {
+    await apiRequest('/admin/notification-campaigns', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Notification campaign created successfully.')
+    await loadView('notifications')
+  }
+
   async function updateSupportTicket(ticketId, patch) {
     await apiRequest(`/admin/support-operations/${ticketId}`, {
       method: 'PATCH',
@@ -324,6 +350,9 @@ function App() {
             onSaveSettings={saveSettings}
             onRevokeAdminSession={revokeAdminSession}
             onUpdatePremiumPlan={updatePremiumPlan}
+            onCreatePremiumPlan={createPremiumPlan}
+            onDeletePremiumPlan={deletePremiumPlan}
+            onCreateNotificationCampaign={createNotificationCampaign}
             onUpdateSupportTicket={updateSupportTicket}
             onUpdateNotificationDevice={updateNotificationDevice}
             onLoadView={loadView}
