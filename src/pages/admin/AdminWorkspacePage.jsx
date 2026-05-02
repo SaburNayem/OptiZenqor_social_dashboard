@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { API_BASE_URL } from '../../services/apiClient'
 import { DashboardView } from '../../components/AdminViews'
 import { AdminSidebar } from '../../components/layout/AdminSidebar'
 import { AdminTopbar } from '../../components/layout/AdminTopbar'
@@ -39,6 +40,11 @@ export function AdminWorkspacePage() {
       <section className="workspace">
         <AdminTopbar title={activeItem.label} admin={session.admin} />
 
+        {!API_BASE_URL ? (
+          <section className="empty-panel error">
+            Missing `VITE_API_BASE_URL`. Add it to your `.env` file, then reload the dashboard.
+          </section>
+        ) : null}
         <NoticeBanner notice={globalNotice} />
         {isBootstrapping ? <section className="empty-panel">Restoring authenticated session...</section> : null}
         {viewState.loading && !isBootstrapping ? <section className="empty-panel">Loading live data...</section> : null}

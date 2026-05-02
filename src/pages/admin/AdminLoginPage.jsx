@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE_URL } from '../../services/apiClient'
 import { AdminLoginForm } from '../../components/forms/AdminLoginForm'
 import { useAdminSession } from '../../hooks/useAdminSession'
 
@@ -35,6 +36,11 @@ export function AdminLoginPage() {
             This dashboard uses authenticated backend APIs only. No starter stats,
             no mock charts, and no local runtime dashboards.
           </p>
+          {!API_BASE_URL ? (
+            <p className="error-text">
+              Missing `VITE_API_BASE_URL`. Create a `.env` file so the dashboard can connect to your backend.
+            </p>
+          ) : null}
         </div>
 
         <AdminLoginForm

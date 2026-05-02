@@ -1,11 +1,13 @@
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
 
-if (!configuredBaseUrl) {
-  throw new Error('VITE_API_BASE_URL is required for the admin dashboard runtime.')
-}
-
 export const API_BASE_URL = configuredBaseUrl
 export const SESSION_STORAGE_KEY = 'optizenqor_admin_session'
+
+function assertApiBaseUrl() {
+  if (!API_BASE_URL) {
+    throw new Error('VITE_API_BASE_URL is missing. Add it to your .env file to connect the dashboard.')
+  }
+}
 
 export function readStoredSession() {
   try {
@@ -59,6 +61,7 @@ export function extractItems(payload) {
 
 export function createApiClient({ getSession, onSessionRefresh, onUnauthorized }) {
   async function request(endpoint, options = {}, allowRefresh = true) {
+    assertApiBaseUrl()
     const session = getSession()
     const headers = {
       'Content-Type': 'application/json',
@@ -91,6 +94,7 @@ export function createApiClient({ getSession, onSessionRefresh, onUnauthorized }
   }
 
   async function refresh(refreshToken) {
+    assertApiBaseUrl()
     try {
       const response = await fetch(`${API_BASE_URL}/admin/auth/refresh`, {
         method: 'POST',

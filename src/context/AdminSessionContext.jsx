@@ -71,6 +71,10 @@ export function AdminSessionProvider({ children }) {
   }, [apiClient, session?.accessToken])
 
   const login = useCallback(async ({ email, password }) => {
+    if (!API_BASE_URL) {
+      throw new Error('VITE_API_BASE_URL is missing. Add it to your .env file before signing in.')
+    }
+
     const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
