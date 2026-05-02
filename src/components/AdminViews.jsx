@@ -359,6 +359,48 @@ export function DashboardView({
     )
   }
 
+  if (viewId === 'wallet') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Wallet Activity</h3>
+        <Table
+          columns={['User', 'Type', 'Amount', 'Currency', 'Status', 'Created']}
+          rows={items.map((item) => [
+            item.userName ?? item.userId ?? 'Unknown',
+            item.type,
+            formatNumber(item.amount),
+            item.currency ?? 'BDT',
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'subscriptions') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Subscriptions</h3>
+        <Table
+          columns={['User', 'Plan', 'Provider', 'Status', 'Auto Renew', 'Period End']}
+          rows={items.map((item) => [
+            item.userName ?? item.userId ?? 'Unknown',
+            item.planName ?? item.planCode ?? 'Unknown plan',
+            item.provider,
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.autoRenew ? 'Yes' : 'No',
+            item.currentPeriodEnd ? new Date(item.currentPeriodEnd).toLocaleString() : 'Unknown',
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
   if (viewId === 'premiumPlans') {
     const items = extractItems(payload)
     return (
