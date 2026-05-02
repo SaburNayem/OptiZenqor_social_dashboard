@@ -4,6 +4,10 @@ import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
 import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
 import { JobsOperationsView } from '../pages/admin/jobs/JobsOperationsView'
+import { EventsOperationsView } from '../pages/admin/events/EventsOperationsView'
+import { CommunitiesOperationsView } from '../pages/admin/communities/CommunitiesOperationsView'
+import { PagesOperationsView } from '../pages/admin/pages/PagesOperationsView'
+import { LiveStreamsOperationsView } from '../pages/admin/live-streams/LiveStreamsOperationsView'
 
 function formatNumber(value) {
   const numeric = Number(value ?? 0)
@@ -224,87 +228,19 @@ export function DashboardView({
   }
 
   if (viewId === 'events') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Event Operations</h3>
-        <Table
-          columns={['Title', 'Organizer', 'Location', 'Status', 'Participants', 'Price']}
-          rows={items.map((item) => [
-            item.title,
-            item.organizerName ?? item.organizerId ?? 'Unknown',
-            item.location,
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            formatNumber(item.participants),
-            formatNumber(item.price),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <EventsOperationsView payload={payload} />
   }
 
   if (viewId === 'communities') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Community Operations</h3>
-        <Table
-          columns={['Name', 'Owner', 'Privacy', 'Category', 'Members', 'Status']}
-          rows={items.map((item) => [
-            item.name,
-            item.ownerName ?? item.ownerId ?? 'Unknown',
-            item.privacy,
-            item.category,
-            formatNumber(item.memberCount),
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <CommunitiesOperationsView payload={payload} />
   }
 
   if (viewId === 'pages') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Page Operations</h3>
-        <Table
-          columns={['Name', 'Owner', 'Category', 'Location', 'Followers', 'Status']}
-          rows={items.map((item) => [
-            item.name,
-            item.ownerName ?? item.ownerId ?? 'Unknown',
-            item.category,
-            item.location,
-            formatNumber(item.followerCount),
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <PagesOperationsView payload={payload} />
   }
 
   if (viewId === 'liveStreams') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Live Stream Operations</h3>
-        <Table
-          columns={['Title', 'Host', 'Category', 'Status', 'Viewers', 'Engagement']}
-          rows={items.map((item) => [
-            item.title,
-            item.hostName ?? item.hostId ?? 'Unknown',
-            item.category,
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            formatNumber(item.viewerCount),
-            `${formatNumber(item.comments)} comments / ${formatNumber(item.reactions)} reactions`,
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <LiveStreamsOperationsView payload={payload} />
   }
 
   if (viewId === 'revenue') {

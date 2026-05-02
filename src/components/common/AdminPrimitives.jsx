@@ -11,6 +11,44 @@ export function PaginationMeta({ payload, formatNumber }) {
   )
 }
 
+export function ExportButton({ filename, rows, label = 'Export CSV' }) {
+  const handleExport = () => {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return
+    }
+
+    const columns = Array.from(
+      rows.reduce((set, row) => {
+        Object.keys(row ?? {}).forEach((key) => set.add(key))
+        return set
+      }, new Set()),
+    )
+    const lines = [
+      columns.join(','),
+      ...rows.map((row) =>
+        columns
+          .map((column) => escapeCsvValue(row?.[column]))
+          .join(','),
+      ),
+    ]
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const href = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = href
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(href)
+  }
+
+  return (
+    <button type="button" onClick={handleExport} disabled={!rows?.length}>
+      {label}
+    </button>
+  )
+}
+
 export function MetricCard({ label, value, helper }) {
   return (
     <article className="metric-card">
@@ -98,4 +136,17 @@ export function StatusBadge({ value }) {
           : 'neutral'
 
   return <span className={`status-badge ${tone}`}>{String(value ?? 'Unknown')}</span>
+}
+
+function escapeCsvValue(value) {
+  if (value == null) {
+    return '""'
+  }
+
+  const normalized =
+    typeof value === 'object'
+      ? JSON.stringify(value)
+      : String(value)
+
+  return `"${normalized.replaceAll('"', '""')}"`
 }
