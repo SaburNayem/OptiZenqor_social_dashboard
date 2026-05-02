@@ -240,6 +240,15 @@ function App() {
     await loadView('support')
   }
 
+  async function updateNotificationDevice(deviceId, patch) {
+    await apiRequest(`/admin/notification-devices/${deviceId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Notification device updated successfully.')
+    await loadView('notificationDevices')
+  }
+
   if (!session?.accessToken) {
     return (
       <main className="login-shell">
@@ -342,6 +351,7 @@ function App() {
             onRevokeAdminSession={revokeAdminSession}
             onUpdatePremiumPlan={updatePremiumPlan}
             onUpdateSupportTicket={updateSupportTicket}
+            onUpdateNotificationDevice={updateNotificationDevice}
             onLoadView={loadView}
           />
         ) : null}

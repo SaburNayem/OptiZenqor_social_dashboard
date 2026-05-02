@@ -39,10 +39,12 @@ export function DashboardView({
   onRevokeAdminSession,
   onUpdatePremiumPlan,
   onUpdateSupportTicket,
+  onUpdateNotificationDevice,
   onLoadView,
 }) {
   const data = payload?.data ?? {}
   const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
+  const [selectedNotificationDeviceId, setSelectedNotificationDeviceId] = useState(null)
 
   if (viewId === 'overview') {
     const totals = data.totals ?? {}
@@ -576,22 +578,113 @@ export function DashboardView({
 
   if (viewId === 'notificationDevices') {
     const items = extractItems(payload)
+    const filters = data.filters ?? {}
+    const resolvedSelectedDeviceId =
+      items.some((item) => item.id === selectedNotificationDeviceId)
+        ? selectedNotificationDeviceId
+        : (items[0]?.id ?? null)
+    const selectedDevice = items.find((item) => item.id === resolvedSelectedDeviceId) ?? null
+
     return (
-      <article className="panel">
-        <h3>Notification Devices</h3>
-        <Table
-          columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Token']}
-          rows={items.map((item) => [
-            item.userName ?? item.userId ?? 'Unknown',
-            item.platform,
-            item.deviceLabel ?? 'Unknown device',
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleString() : 'Unknown',
-            item.token,
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <section className="stack">
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Notification Devices</h3>
+              <p className="panel-copy">Review registered push endpoints and deactivate stale or risky devices.</p>
+            </div>
+            <form
+              className="filters-bar"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const formData = new FormData(event.currentTarget)
+                onLoadView('notificationDevices', {
+                  page: 1,
+                  limit: 20,
+                  search: String(formData.get('search') ?? '').trim(),
+                  status: String(formData.get('status') ?? '').trim(),
+                })
+              }}
+            >
+              <input name="search" type="search" defaultValue={filters.search ?? ''} placeholder="Search token, user, device" />
+              <select name="status" defaultValue={filters.status ?? ''}>
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <button type="submit">Apply</button>
+            </form>
+          </div>
+          <Table
+            columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Actions']}
+            rows={items.map((item) => [
+              <button type="button" className="link-button" key={`${item.id}-select`} onClick={() => setSelectedNotificationDeviceId(item.id)}>
+                {item.userName ?? item.userId ?? 'Unknown'}
+              </button>,
+              item.platform,
+              item.deviceLabel ?? 'Unknown device',
+              <StatusBadge value={item.status} key={`${item.id}-status`} />,
+              item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleString() : 'Unknown',
+              <div className="action-row" key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => onUpdateNotificationDevice(item.id, { isActive: item.status !== 'active' })}
+                >
+                  {item.status === 'active' ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>,
+            ])}
+          />
+          <PaginationMeta payload={payload} />
+        </article>
+
+        <div className="detail-grid">
+          <article className="panel">
+            <h3>Device Detail</h3>
+            {selectedDevice ? (
+              <dl className="detail-list">
+                <div>
+                  <dt>User</dt>
+                  <dd>{selectedDevice.userName ?? selectedDevice.userId ?? 'Unknown user'}</dd>
+                </div>
+                <div>
+                  <dt>Platform</dt>
+                  <dd>{selectedDevice.platform ?? 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Device Label</dt>
+                  <dd>{selectedDevice.deviceLabel ?? 'Unknown device'}</dd>
+                </div>
+                <div>
+                  <dt>Status</dt>
+                  <dd>{selectedDevice.status ?? 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Token</dt>
+                  <dd>{selectedDevice.token ?? 'Unavailable'}</dd>
+                </div>
+                <div>
+                  <dt>Last Seen</dt>
+                  <dd>{selectedDevice.lastSeenAt ? new Date(selectedDevice.lastSeenAt).toLocaleString() : 'Unknown'}</dd>
+                </div>
+              </dl>
+            ) : (
+              <div className="empty-panel">Select a device to inspect its registered push endpoint.</div>
+            )}
+          </article>
+
+          <article className="panel">
+            <h3>Status Summary</h3>
+            <DataList
+              items={[
+                ['Visible devices', data.pagination?.total ?? items.length],
+                ['Active', items.filter((item) => item.status === 'active').length],
+                ['Inactive', items.filter((item) => item.status === 'inactive').length],
+              ]}
+            />
+          </article>
+        </div>
+      </section>
     )
   }
 
