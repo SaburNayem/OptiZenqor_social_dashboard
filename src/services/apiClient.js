@@ -1,5 +1,10 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? 'https://opti-zenqor-social-backend.vercel.app'
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
+
+if (!configuredBaseUrl) {
+  throw new Error('VITE_API_BASE_URL is required for the admin dashboard runtime.')
+}
+
+export const API_BASE_URL = configuredBaseUrl
 export const SESSION_STORAGE_KEY = 'optizenqor_admin_session'
 
 export function readStoredSession() {
