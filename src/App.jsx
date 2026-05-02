@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { DashboardView } from './components/AdminViews'
+import { AdminSidebar } from './components/layout/AdminSidebar'
+import { AdminTopbar } from './components/layout/AdminTopbar'
 import { navigationItems } from './config/navigation'
 import {
   API_BASE_URL,
@@ -295,43 +297,15 @@ function App() {
 
   return (
     <main className="app-shell">
-      <aside className="sidebar">
-        <div>
-          <p className="eyebrow">OptiZenqor Social</p>
-          <h2>Admin Console</h2>
-          <p className="sidebar-copy">Authenticated control plane for live platform operations.</p>
-        </div>
-
-        <nav className="sidebar-nav" aria-label="Admin sections">
-          {navigationItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={item.id === activeItem.id ? 'nav-item active' : 'nav-item'}
-              onClick={() => setActiveView(item.id)}
-            >
-              <span>{item.label}</span>
-              <small>Admin API</small>
-            </button>
-          ))}
-        </nav>
-
-        <button type="button" className="logout-button" onClick={handleLogout}>
-          Logout
-        </button>
-      </aside>
+      <AdminSidebar
+        items={navigationItems}
+        activeItemId={activeItem.id}
+        onSelect={setActiveView}
+        onLogout={handleLogout}
+      />
 
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">Authenticated session</p>
-            <h1>{activeItem.label}</h1>
-          </div>
-          <div className="topbar-meta">
-            <strong>{session.admin?.name ?? 'Admin'}</strong>
-            <span>{session.admin?.role ?? 'Admin role'}</span>
-          </div>
-        </header>
+        <AdminTopbar title={activeItem.label} admin={session.admin} />
 
         {globalNotice ? <p className="notice-banner">{globalNotice}</p> : null}
         {isBootstrapping ? <section className="empty-panel">Restoring authenticated session...</section> : null}
