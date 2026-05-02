@@ -2,27 +2,38 @@
 
 Last updated: 2026-05-02
 
-## Files Changed In This Pass
+## Latest Integration Status
 
-- `src/config/navigation.js`
-- `DASHBOARD_BACKEND_INTEGRATION_REPORT.md`
+No new dashboard source files changed in this continuation pass. The latest dashboard code work in this implementation cycle remains the notification campaign integration work already landed in:
 
-## What Changed
+- `src/App.jsx`
+- `src/components/AdminViews.jsx`
 
-- Repointed notification campaigns navigation from stale `/admin/broadcast-campaigns` to canonical `/admin/notification-campaigns`.
-- Repointed notification devices navigation from compatibility alias `/admin/notifications/devices` to canonical `/admin/notification-devices`.
+That earlier pass wired:
+
+- notification campaign update mutations
+- notification campaign send/cancel lifecycle actions
+- live backend refresh after campaign mutations
+
+The dashboard also continues to require `VITE_API_BASE_URL` rather than a runtime hardcoded backend fallback.
 
 ## Validation
 
+- `npm install` -> passed in the earlier dashboard pass of this cycle
 - `npm run lint` -> passed
 - `npm run build` -> passed
 
 ## Remaining Dashboard Gaps
 
-- The dashboard still uses a compact `src/App.jsx` driven structure rather than the requested professional split across `services`, `config`, `layout`, `tables`, `forms`, `pages`, and auth context modules.
-- The dashboard still needs fuller page-level UX for loading skeletons, retry states, detail drawers, confirmation flows, and role-aware action hiding across all admin sections.
-- The dashboard still needs broader authenticated mutation coverage for all requested admin domains beyond the routes updated in this pass.
+- the dashboard still uses a compact `src/App.jsx` structure rather than the requested split across `services`, `context`, `layout`, reusable tables/forms/modals, and `pages/admin/*`
+- many navigation sections still need full operational UX: search/filter/sort/pagination, detail drawers, create/edit forms, confirmations, role-aware actions, and mutation-driven refresh
+- several sections are still dependent on missing backend admin mutation coverage, especially outside notification/support slices
 
-## Status
+## Navigation Coverage Snapshot
 
-The dashboard now points to the corrected backend admin notification endpoints and still builds cleanly. It should not yet be considered fully rebuilt to the requested production-grade admin architecture.
+- overview, users, content, reports, support, marketplace, jobs, events, communities, pages, live streams, revenue, wallet, subscriptions, premium plans, notification campaigns, notification devices, admin sessions, settings, and audit logs all exist in navigation
+- not every navigation item yet has the full production-grade action surface required by the brief
+
+## Honest Status
+
+The dashboard builds cleanly and the notification campaign area is no longer read-only, but the dashboard should not yet be considered fully rebuilt to the requested production admin-console architecture.
