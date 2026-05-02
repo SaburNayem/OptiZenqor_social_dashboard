@@ -11,6 +11,39 @@ export function PaginationMeta({ payload, formatNumber }) {
   )
 }
 
+export function MetricCard({ label, value, helper }) {
+  return (
+    <article className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {helper ? <small>{helper}</small> : null}
+    </article>
+  )
+}
+
+export function ChartCard({ title, children, aside = null }) {
+  return (
+    <article className="panel">
+      <div className="panel-header">
+        <div>
+          <h3>{title}</h3>
+        </div>
+        {aside}
+      </div>
+      {children}
+    </article>
+  )
+}
+
+export function EmptyState({ title, description }) {
+  return (
+    <div className="empty-panel">
+      <strong>{title}</strong>
+      <p>{description}</p>
+    </div>
+  )
+}
+
 export function DataList({ items, formatNumber }) {
   return (
     <dl className="data-list">

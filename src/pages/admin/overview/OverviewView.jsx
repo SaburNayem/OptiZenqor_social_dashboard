@@ -1,41 +1,145 @@
-import { DataList } from '../../../components/AdminViews'
+import { ChartCard, DataList, EmptyState, MetricCard } from '../../../components/common/AdminPrimitives'
 
 function formatNumber(value) {
   const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
+function formatMoney(value) {
+  const numeric = Number(value ?? 0)
+  return Number.isFinite(numeric) ? `$${numeric.toLocaleString()}` : '$0'
+}
+
+function MiniBars({ items, valueKey = 'value' }) {
+  const maxValue = Math.max(...items.map((item) => Number(item[valueKey] ?? 0)), 0)
+  if (!items.length || maxValue <= 0) {
+    return <EmptyState title="No chart data" description="The backend has not returned chart points for this range yet." />
+  }
+
+  return (
+    <div className="mini-bars">
+      {items.map((item) => {
+        const value = Number(item[valueKey] ?? 0)
+        const height = Math.max(14, Math.round((value / maxValue) * 100))
+        return (
+          <div key={item.label} className="mini-bar-item">
+            <span className="mini-bar-value">{formatNumber(value)}</span>
+            <div className="mini-bar-track">
+              <div className="mini-bar-fill" style={{ height: `${height}%` }} />
+            </div>
+            <span className="mini-bar-label">{item.label}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function OverviewView({ data }) {
   const totals = data?.totals ?? {}
+  const health = data?.health ?? {}
+  const charts = data?.charts ?? {}
+  const breakdowns = data?.breakdowns ?? {}
+  const summaries = data?.summaries ?? {}
+  const recentActivity = data?.recentActivity ?? []
+
   const cards = [
-    { label: 'Users', value: totals.users },
-    { label: 'Active Users', value: totals.activeUsers },
-    { label: 'Posts', value: totals.posts },
-    { label: 'Open Reports', value: totals.openReports },
-    { label: 'Support Queue', value: totals.supportTickets },
-    { label: 'Revenue', value: totals.revenue },
+    { label: 'Users', value: formatNumber(totals.users), helper: `${formatNumber(totals.activeUsers)} active` },
+    { label: 'Content', value: formatNumber((totals.posts ?? 0) + (totals.reels ?? 0) + (totals.stories ?? 0)), helper: `${formatNumber(totals.posts)} posts live` },
+    { label: 'Open Reports', value: formatNumber(totals.openReports), helper: `${formatNumber(totals.reports)} total reports` },
+    { label: 'Support Queue', value: formatNumber(totals.supportTickets), helper: `${formatNumber(health.supportQueue)} waiting now` },
+    { label: 'Subscriptions', value: formatNumber(totals.activeSubscriptions), helper: 'Active billing relationships' },
+    { label: 'Revenue', value: formatMoney(totals.revenue), helper: 'Wallet transaction sum' },
   ]
+
+  const userGrowth =
+    charts.userGrowth?.labels?.map((label, index) => ({
+      label,
+      value: charts.userGrowth?.values?.[index] ?? 0,
+    })) ?? []
+  const revenueGrowth = charts.revenueGrowth ?? []
+  const contentGrowth =
+    charts.contentGrowth?.map((item) => ({
+      label: item.label,
+      value: item.total,
+    })) ?? []
 
   return (
     <section className="stack">
       <div className="card-grid">
         {cards.map((card) => (
-          <article key={card.label} className="metric-card">
-            <span>{card.label}</span>
-            <strong>{formatNumber(card.value)}</strong>
-          </article>
+          <MetricCard key={card.label} label={card.label} value={card.value} helper={card.helper} />
         ))}
       </div>
-      <article className="panel">
-        <h3>Operational Health</h3>
-        <DataList
-          items={[
-            ['Moderation queue', data?.health?.moderationQueue],
-            ['Support queue', data?.health?.supportQueue],
-            ['Report queue', data?.health?.reportQueue],
-          ]}
-        />
-      </article>
+
+      <div className="detail-grid">
+        <ChartCard title="User Growth">
+          <MiniBars items={userGrowth} />
+        </ChartCard>
+        <ChartCard title="Revenue Trend">
+          <MiniBars items={revenueGrowth} />
+        </ChartCard>
+      </div>
+
+      <div className="detail-grid">
+        <ChartCard title="Content Output">
+          <MiniBars items={contentGrowth} />
+        </ChartCard>
+        <ChartCard title="Operational Health">
+          <DataList
+            items={[
+              ['Moderation queue', health.moderationQueue],
+              ['Support queue', health.supportQueue],
+              ['Report queue', health.reportQueue],
+              ['Live streams', summaries.live?.activeStreams],
+              ['Active calls', summaries.live?.activeCalls],
+            ]}
+            formatNumber={formatNumber}
+          />
+        </ChartCard>
+      </div>
+
+      <div className="detail-grid">
+        <ChartCard title="Status Breakdowns">
+          <div className="overview-breakdowns">
+            <DataList items={(breakdowns.reportsByStatus ?? []).map((item) => [item.label, item.value])} formatNumber={formatNumber} />
+            <DataList items={(breakdowns.supportByStatus ?? []).map((item) => [item.label, item.value])} formatNumber={formatNumber} />
+            <DataList items={(breakdowns.subscriptionsByStatus ?? []).map((item) => [item.label, item.value])} formatNumber={formatNumber} />
+          </div>
+        </ChartCard>
+        <ChartCard title="Business Summaries">
+          <DataList
+            items={[
+              ['Marketplace orders', summaries.marketplace?.orders],
+              ['Pending marketplace orders', summaries.marketplace?.pendingOrders],
+              ['Open jobs', summaries.jobs?.openJobs],
+              ['Job applications', summaries.jobs?.applications],
+              ['Support tickets', summaries.support?.total],
+              ['Subscriptions', summaries.subscriptions?.total],
+            ]}
+            formatNumber={formatNumber}
+          />
+        </ChartCard>
+      </div>
+
+      <ChartCard title="Recent Admin Activity">
+        {recentActivity.length ? (
+          <div className="activity-timeline">
+            {recentActivity.map((item) => (
+              <article key={item.id} className="activity-item">
+                <strong>{item.action}</strong>
+                <span>
+                  {item.entityType}
+                  {item.entityId ? ` • ${item.entityId}` : ''}
+                </span>
+                <time>{new Date(item.createdAt).toLocaleString()}</time>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No recent admin activity" description="Audit-backed actions will appear here as the operations team works." />
+        )}
+      </ChartCard>
     </section>
   )
 }

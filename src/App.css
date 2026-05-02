@@ -226,6 +226,12 @@
   color: #ffffff;
 }
 
+.metric-card small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(234, 240, 255, 0.62);
+}
+
 .panel h3 {
   margin-bottom: 16px;
 }
@@ -322,6 +328,62 @@
 .data-list dd {
   margin: 0;
   color: #fff7df;
+}
+
+.overview-breakdowns {
+  display: grid;
+  gap: 16px;
+}
+
+.mini-bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 12px;
+  align-items: end;
+  min-height: 220px;
+}
+
+.mini-bar-item {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.mini-bar-track {
+  display: flex;
+  align-items: end;
+  width: 100%;
+  min-height: 140px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mini-bar-fill {
+  width: 100%;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f4d27a 0%, #ef8f64 100%);
+}
+
+.mini-bar-label,
+.mini-bar-value,
+.activity-item span,
+.activity-item time {
+  color: rgba(234, 240, 255, 0.72);
+  font-size: 0.88rem;
+}
+
+.activity-timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.activity-item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .table-wrap {
