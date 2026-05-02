@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'https://opti-zenqor-social-backend.vercel.app'
 export const SESSION_STORAGE_KEY = 'optizenqor_admin_session'
 
 export function readStoredSession() {

@@ -97,6 +97,7 @@ export function DashboardView({
               </div>,
             ])}
           />
+          <PaginationMeta payload={payload} />
         </article>
       </section>
     )
@@ -128,6 +129,7 @@ export function DashboardView({
             </div>,
           ])}
         />
+        <PaginationMeta payload={payload} />
       </article>
     )
   }
@@ -154,6 +156,7 @@ export function DashboardView({
             </div>,
           ])}
         />
+        <PaginationMeta payload={payload} />
       </article>
     )
   }
@@ -173,6 +176,132 @@ export function DashboardView({
             new Date(ticket.updatedAt).toLocaleString(),
           ])}
         />
+      </article>
+    )
+  }
+
+  if (viewId === 'marketplace') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Marketplace Operations</h3>
+        <Table
+          columns={['Title', 'Category', 'Price', 'Status', 'Seller', 'Created']}
+          rows={items.map((item) => [
+            item.title,
+            item.category,
+            `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.sellerName ?? item.sellerId ?? 'Unknown',
+            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'jobs') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Jobs Moderation</h3>
+        <Table
+          columns={['Title', 'Company', 'Type', 'Status', 'Applications', 'Recruiter']}
+          rows={items.map((item) => [
+            item.title,
+            item.company,
+            item.type,
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            formatNumber(item.applications),
+            item.recruiterName ?? item.recruiterId ?? 'Unknown',
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'events') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Event Operations</h3>
+        <Table
+          columns={['Title', 'Organizer', 'Location', 'Status', 'Participants', 'Price']}
+          rows={items.map((item) => [
+            item.title,
+            item.organizerName ?? item.organizerId ?? 'Unknown',
+            item.location,
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            formatNumber(item.participants),
+            formatNumber(item.price),
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'communities') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Community Operations</h3>
+        <Table
+          columns={['Name', 'Owner', 'Privacy', 'Category', 'Members', 'Status']}
+          rows={items.map((item) => [
+            item.name,
+            item.ownerName ?? item.ownerId ?? 'Unknown',
+            item.privacy,
+            item.category,
+            formatNumber(item.memberCount),
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'pages') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Page Operations</h3>
+        <Table
+          columns={['Name', 'Owner', 'Category', 'Location', 'Followers', 'Status']}
+          rows={items.map((item) => [
+            item.name,
+            item.ownerName ?? item.ownerId ?? 'Unknown',
+            item.category,
+            item.location,
+            formatNumber(item.followerCount),
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'liveStreams') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Live Stream Operations</h3>
+        <Table
+          columns={['Title', 'Host', 'Category', 'Status', 'Viewers', 'Engagement']}
+          rows={items.map((item) => [
+            item.title,
+            item.hostName ?? item.hostId ?? 'Unknown',
+            item.category,
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            formatNumber(item.viewerCount),
+            `${formatNumber(item.comments)} comments / ${formatNumber(item.reactions)} reactions`,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
       </article>
     )
   }
@@ -207,6 +336,27 @@ export function DashboardView({
     )
   }
 
+  if (viewId === 'walletSubscriptions') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Wallet & Subscription Activity</h3>
+        <Table
+          columns={['Type', 'Label', 'User', 'Amount', 'Status', 'Created']}
+          rows={items.map((item) => [
+            item.kind,
+            item.label,
+            item.userName ?? item.userId ?? 'Unknown',
+            item.amount == null ? '—' : formatNumber(item.amount),
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Unknown',
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
   if (viewId === 'notifications') {
     const items = extractItems(payload)
     return (
@@ -225,6 +375,27 @@ export function DashboardView({
     )
   }
 
+  if (viewId === 'notificationDevices') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Notification Devices</h3>
+        <Table
+          columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Token']}
+          rows={items.map((item) => [
+            item.userName ?? item.userId ?? 'Unknown',
+            item.platform,
+            item.deviceLabel ?? 'Unknown device',
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.lastSeenAt ? new Date(item.lastSeenAt).toLocaleString() : 'Unknown',
+            item.token,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
   if (viewId === 'audit') {
     const items = extractItems(payload)
     return (
@@ -239,6 +410,7 @@ export function DashboardView({
             new Date(item.createdAt).toLocaleString(),
           ])}
         />
+        <PaginationMeta payload={payload} />
       </article>
     )
   }
@@ -263,7 +435,21 @@ export function DashboardView({
         columns={resolveColumns(items)}
         rows={items.map((item) => resolveColumns(items).map((column) => formatCell(item[column])))}
       />
+      <PaginationMeta payload={payload} />
     </article>
+  )
+}
+
+function PaginationMeta({ payload }) {
+  const pagination = payload?.data?.pagination
+  if (!pagination) {
+    return null
+  }
+
+  return (
+    <p className="pagination-meta">
+      Page {pagination.page} of {pagination.totalPages} • {formatNumber(pagination.total)} total items
+    </p>
   )
 }
 

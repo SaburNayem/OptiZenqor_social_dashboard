@@ -215,6 +215,12 @@
   margin-bottom: 16px;
 }
 
+.pagination-meta {
+  margin: 16px 0 0;
+  color: rgba(234, 240, 255, 0.62);
+  font-size: 0.9rem;
+}
+
 .data-list {
   display: grid;
   gap: 12px;

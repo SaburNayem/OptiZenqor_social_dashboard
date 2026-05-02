@@ -3,6 +3,7 @@ import './App.css'
 import { DashboardView } from './components/AdminViews'
 import { navigationItems } from './config/navigation'
 import {
+  API_BASE_URL,
   clearStoredSession,
   createApiClient,
   readStoredSession,
@@ -112,7 +113,7 @@ function App() {
     setLoginState((current) => ({ ...current, loading: true, error: '' }))
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000'}/admin/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/admin/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -260,7 +261,7 @@ function App() {
               onClick={() => setActiveView(item.id)}
             >
               <span>{item.label}</span>
-              <small>{item.kind === 'admin' ? 'Admin API' : 'App API'}</small>
+              <small>Admin API</small>
             </button>
           ))}
         </nav>
