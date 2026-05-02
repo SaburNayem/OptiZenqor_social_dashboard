@@ -199,6 +199,23 @@ function App() {
     }
   }
 
+  async function revokeAdminSession(sessionId) {
+    await apiRequest(`/admin/auth/sessions/${sessionId}/revoke`, {
+      method: 'PATCH',
+    })
+    setGlobalNotice('Admin session revoked successfully.')
+    await loadView('adminSessions')
+  }
+
+  async function updatePremiumPlan(planId, patch) {
+    await apiRequest(`/admin/premium-plans/${planId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Premium plan updated successfully.')
+    await loadView('premiumPlans')
+  }
+
   if (!session?.accessToken) {
     return (
       <main className="login-shell">
@@ -298,6 +315,8 @@ function App() {
             onModerateContent={moderateContent}
             onUpdateReport={updateReport}
             onSaveSettings={saveSettings}
+            onRevokeAdminSession={revokeAdminSession}
+            onUpdatePremiumPlan={updatePremiumPlan}
           />
         ) : null}
       </section>

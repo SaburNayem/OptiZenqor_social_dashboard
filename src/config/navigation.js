@@ -12,8 +12,10 @@ export const navigationItems = [
   { id: 'liveStreams', label: 'Live Streams', kind: 'admin', endpoint: '/admin/live-streams' },
   { id: 'revenue', label: 'Revenue & Subs', kind: 'admin', endpoint: '/admin/dashboard/revenue' },
   { id: 'walletSubscriptions', label: 'Wallet & Subs', kind: 'admin', endpoint: '/admin/wallet-subscriptions' },
+  { id: 'premiumPlans', label: 'Premium Plans', kind: 'admin', endpoint: '/admin/premium-plans' },
   { id: 'notifications', label: 'Notifications', kind: 'admin', endpoint: '/admin/broadcast-campaigns' },
   { id: 'notificationDevices', label: 'Notification Devices', kind: 'admin', endpoint: '/admin/notification-devices' },
+  { id: 'adminSessions', label: 'Admin Sessions', kind: 'admin', endpoint: '/admin/auth/sessions' },
   { id: 'settings', label: 'Settings', kind: 'admin', endpoint: '/admin/settings' },
   { id: 'audit', label: 'Audit Logs', kind: 'admin', endpoint: '/admin/audit-logs' },
 ]

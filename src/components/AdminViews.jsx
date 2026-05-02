@@ -35,6 +35,8 @@ export function DashboardView({
   onModerateContent,
   onUpdateReport,
   onSaveSettings,
+  onRevokeAdminSession,
+  onUpdatePremiumPlan,
 }) {
   const data = payload?.data ?? {}
 
@@ -357,6 +359,40 @@ export function DashboardView({
     )
   }
 
+  if (viewId === 'premiumPlans') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Premium Plans</h3>
+        <Table
+          columns={['Name', 'Code', 'Price', 'Billing', 'Status', 'Actions']}
+          rows={items.map((item) => [
+            item.name,
+            item.code,
+            `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
+            item.billingInterval ?? 'monthly',
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            <div className="action-row" key={item.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdatePremiumPlan(item.id, {
+                    isActive: !(item.isActive === true || item.status === 'active'),
+                  })
+                }
+              >
+                {item.isActive === true || item.status === 'active'
+                  ? 'Deactivate'
+                  : 'Activate'}
+              </button>
+            </div>,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
   if (viewId === 'notifications') {
     const items = extractItems(payload)
     return (
@@ -392,6 +428,34 @@ export function DashboardView({
           ])}
         />
         <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'adminSessions') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <h3>Admin Sessions</h3>
+        <Table
+          columns={['Admin', 'Role', 'Device', 'Status', 'Last Active', 'Actions']}
+          rows={items.map((item) => [
+            item.name ?? item.email ?? item.adminId ?? 'Admin',
+            item.role ?? 'Admin',
+            item.device ?? 'Dashboard session',
+            <StatusBadge value={item.current ? 'active' : 'revoked'} key={`${item.id}-status`} />,
+            item.lastActive ? new Date(item.lastActive).toLocaleString() : 'Unknown',
+            <div className="action-row" key={item.id}>
+              <button
+                type="button"
+                onClick={() => onRevokeAdminSession(item.id)}
+                disabled={!item.current}
+              >
+                Revoke
+              </button>
+            </div>,
+          ])}
+        />
       </article>
     )
   }
