@@ -17,6 +17,7 @@ export function AdminWorkspacePage() {
     settingsDraft,
     setSettingsDraft,
     loadView,
+    refreshActiveView,
     actions,
   } = useAdminDashboard()
 
@@ -41,7 +42,14 @@ export function AdminWorkspacePage() {
         <NoticeBanner notice={globalNotice} />
         {isBootstrapping ? <section className="empty-panel">Restoring authenticated session...</section> : null}
         {viewState.loading && !isBootstrapping ? <section className="empty-panel">Loading live data...</section> : null}
-        {viewState.error ? <section className="empty-panel error">{viewState.error}</section> : null}
+        {viewState.error ? (
+          <section className="empty-panel error">
+            <p>{viewState.error}</p>
+            <button type="button" onClick={() => void refreshActiveView()}>
+              Retry
+            </button>
+          </section>
+        ) : null}
 
         {!isBootstrapping && !viewState.loading && !viewState.error ? (
           <DashboardView
