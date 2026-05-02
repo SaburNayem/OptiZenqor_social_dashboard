@@ -54,6 +54,8 @@ export function DashboardView({
   onCreatePremiumPlan,
   onDeletePremiumPlan,
   onCreateNotificationCampaign,
+  onUpdateNotificationCampaign,
+  onRunNotificationCampaignAction,
   onUpdateSupportTicket,
   onUpdateNotificationDevice,
   onLoadView,
@@ -73,6 +75,7 @@ export function DashboardView({
     audience: 'all_users',
     schedule: '',
   })
+  const [campaignEditDrafts, setCampaignEditDrafts] = useState({})
 
   if (viewId === 'overview') {
     const totals = data.totals ?? {}
@@ -690,15 +693,87 @@ export function DashboardView({
             />
           </div>
           <Table
-            columns={['Name', 'Audience', 'Status', 'Schedule']}
+            columns={['Name', 'Audience', 'Status', 'Schedule', 'Actions']}
             rows={items.map((item) => [
               item.name ?? item.title ?? item.id,
               item.audience ?? item.segmentId ?? 'All users',
               <StatusBadge value={item.status ?? 'scheduled'} key={`${item.id}-status`} />,
               item.schedule ?? item.createdAt ?? 'Not scheduled',
+              <div className="action-row" key={item.id}>
+                <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'send')} disabled={item.status === 'sent'}>
+                  Send
+                </button>
+                <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'cancel')} disabled={item.status === 'cancelled'}>
+                  Cancel
+                </button>
+              </div>,
             ])}
           />
           <PaginationMeta payload={payload} />
+        </article>
+
+        <article className="panel">
+          <h3>Update Notification Campaign</h3>
+          <div className="stack">
+            {items.map((item) => {
+              const draft = campaignEditDrafts[item.id] ?? {
+                name: item.name ?? '',
+                audience: item.audience ?? 'all_users',
+                schedule: item.schedule ?? '',
+              }
+
+              return (
+                <form
+                  key={`campaign-edit-${item.id}`}
+                  className="inline-form"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    onUpdateNotificationCampaign(item.id, {
+                      name: draft.name.trim(),
+                      audience: draft.audience,
+                      schedule: draft.schedule.trim(),
+                    })
+                  }}
+                >
+                  <input
+                    value={draft.name}
+                    onChange={(event) =>
+                      setCampaignEditDrafts((current) => ({
+                        ...current,
+                        [item.id]: { ...draft, name: event.target.value },
+                      }))
+                    }
+                    placeholder="Campaign name"
+                  />
+                  <select
+                    value={draft.audience}
+                    onChange={(event) =>
+                      setCampaignEditDrafts((current) => ({
+                        ...current,
+                        [item.id]: { ...draft, audience: event.target.value },
+                      }))
+                    }
+                  >
+                    <option value="all_users">All users</option>
+                    <option value="verified_users">Verified users</option>
+                    <option value="premium">Premium subscribers</option>
+                    <option value="creators">Creators</option>
+                  </select>
+                  <input
+                    value={draft.schedule}
+                    onChange={(event) =>
+                      setCampaignEditDrafts((current) => ({
+                        ...current,
+                        [item.id]: { ...draft, schedule: event.target.value },
+                      }))
+                    }
+                    placeholder="2026-05-02T18:00:00Z"
+                  />
+                  <button type="submit">Update</button>
+                </form>
+              )
+            })}
+          </div>
         </article>
 
         <article className="panel">

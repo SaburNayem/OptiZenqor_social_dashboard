@@ -259,6 +259,24 @@ function App() {
     await loadView('notifications')
   }
 
+  async function updateNotificationCampaign(campaignId, patch) {
+    await apiRequest(`/admin/notification-campaigns/${campaignId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Notification campaign updated successfully.')
+    await loadView('notifications')
+  }
+
+  async function runNotificationCampaignAction(campaignId, action, patch = {}) {
+    await apiRequest(`/admin/notification-campaigns/${campaignId}/actions`, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...patch }),
+    })
+    setGlobalNotice(`Notification campaign ${action} completed successfully.`)
+    await loadView('notifications')
+  }
+
   async function updateSupportTicket(ticketId, patch) {
     await apiRequest(`/admin/support-operations/${ticketId}`, {
       method: 'PATCH',
@@ -353,6 +371,8 @@ function App() {
             onCreatePremiumPlan={createPremiumPlan}
             onDeletePremiumPlan={deletePremiumPlan}
             onCreateNotificationCampaign={createNotificationCampaign}
+            onUpdateNotificationCampaign={updateNotificationCampaign}
+            onRunNotificationCampaignAction={runNotificationCampaignAction}
             onUpdateSupportTicket={updateSupportTicket}
             onUpdateNotificationDevice={updateNotificationDevice}
             onLoadView={loadView}
