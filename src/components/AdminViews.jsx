@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { extractItems } from '../services/apiClient'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
+import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
+import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
+import { JobsOperationsView } from '../pages/admin/jobs/JobsOperationsView'
 
 function formatNumber(value) {
   const numeric = Number(value ?? 0)
@@ -63,7 +66,6 @@ export function DashboardView({
 }) {
   const data = payload?.data ?? {}
   const filters = resolveFilters(payload)
-  const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
   const [selectedNotificationDeviceId, setSelectedNotificationDeviceId] = useState(null)
   const [premiumPlanDraft, setPremiumPlanDraft] = useState({
     code: '',
@@ -210,157 +212,15 @@ export function DashboardView({
   }
 
   if (viewId === 'support') {
-    const tickets = data.tickets ?? []
-    const actions = data.actions ?? []
-    const resolvedSelectedTicketId =
-      tickets.some((ticket) => ticket.id === selectedSupportTicketId)
-        ? selectedSupportTicketId
-        : (tickets[0]?.id ?? null)
-    const selectedTicket = tickets.find((ticket) => ticket.id === resolvedSelectedTicketId) ?? null
-
-    return (
-      <section className="stack">
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <h3>Support Operations</h3>
-              <p className="panel-copy">Search the live queue, change ticket state, and keep an audit-backed trail.</p>
-            </div>
-            <FilterForm
-              fields={[
-                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search subject, category, user' },
-                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'open', 'reviewing', 'resolved', 'closed'] },
-                { name: 'priority', type: 'select', defaultValue: filters.priority ?? '', options: ['', 'low', 'normal', 'high', 'urgent'] },
-              ]}
-              onSubmit={(query) => onLoadView('support', { page: 1, limit: 20, ...query })}
-            />
-          </div>
-          <Table
-            columns={['Subject', 'User', 'Category', 'Status', 'Priority', 'Updated', 'Actions']}
-            rows={tickets.map((ticket) => [
-              <button type="button" className="link-button" key={`${ticket.id}-select`} onClick={() => setSelectedSupportTicketId(ticket.id)}>
-                {ticket.subject}
-              </button>,
-              ticket.userName ?? ticket.username ?? ticket.userEmail ?? 'Guest or deleted user',
-              ticket.category,
-              <StatusBadge value={ticket.status} key={`${ticket.id}-status`} />,
-              <StatusBadge value={ticket.priority} key={`${ticket.id}-priority`} />,
-              formatDate(ticket.updatedAt),
-              <div className="action-row" key={ticket.id}>
-                <button type="button" onClick={() => onUpdateSupportTicket(ticket.id, { status: 'reviewing' })}>
-                  Review
-                </button>
-                <button type="button" onClick={() => onUpdateSupportTicket(ticket.id, { priority: 'high' })}>
-                  Escalate
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdateSupportTicket(ticket.id, {
-                      status: 'resolved',
-                      adminNote: 'Resolved from admin dashboard',
-                    })
-                  }
-                >
-                  Resolve
-                </button>
-              </div>,
-            ])}
-          />
-          <PaginationMeta payload={payload} />
-        </article>
-
-        <div className="detail-grid">
-          <article className="panel">
-            <h3>Ticket Detail</h3>
-            {selectedTicket ? (
-              <dl className="detail-list">
-                <div>
-                  <dt>Subject</dt>
-                  <dd>{selectedTicket.subject}</dd>
-                </div>
-                <div>
-                  <dt>User</dt>
-                  <dd>{selectedTicket.userName ?? selectedTicket.username ?? selectedTicket.userEmail ?? 'Guest or deleted user'}</dd>
-                </div>
-                <div>
-                  <dt>Channel</dt>
-                  <dd>{selectedTicket.channel ?? 'Unknown'}</dd>
-                </div>
-                <div>
-                  <dt>Conversation</dt>
-                  <dd>{selectedTicket.conversationStatus ?? 'No conversation yet'}</dd>
-                </div>
-                <div>
-                  <dt>Latest message</dt>
-                  <dd>{selectedTicket.latestMessage ?? 'No recent message'}</dd>
-                </div>
-                <div>
-                  <dt>Admin notes</dt>
-                  <dd>{selectedTicket.adminNotes?.length ? selectedTicket.adminNotes.join(' | ') : 'No admin notes yet'}</dd>
-                </div>
-              </dl>
-            ) : (
-              <div className="empty-panel">Select a ticket to inspect its live support details.</div>
-            )}
-          </article>
-
-          <article className="panel">
-            <h3>Recent Support Actions</h3>
-            <Table
-              columns={['Action', 'Ticket', 'Created']}
-              rows={actions.map((action) => [
-                action.action,
-                action.entityId ?? 'Unknown ticket',
-                formatDate(action.createdAt),
-              ])}
-            />
-          </article>
-        </div>
-      </section>
-    )
+    return <SupportOperationsView payload={payload} filters={filters} onUpdateSupportTicket={onUpdateSupportTicket} onLoadView={onLoadView} />
   }
 
   if (viewId === 'marketplace') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Marketplace Operations</h3>
-        <Table
-          columns={['Title', 'Category', 'Price', 'Status', 'Seller', 'Created']}
-          rows={items.map((item) => [
-            item.title,
-            item.category,
-            `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.sellerName ?? item.sellerId ?? 'Unknown',
-            formatDate(item.createdAt),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <MarketplaceOperationsView payload={payload} />
   }
 
   if (viewId === 'jobs') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Jobs Moderation</h3>
-        <Table
-          columns={['Title', 'Company', 'Type', 'Status', 'Applications', 'Recruiter']}
-          rows={items.map((item) => [
-            item.title,
-            item.company,
-            item.type,
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            formatNumber(item.applications),
-            item.recruiterName ?? item.recruiterId ?? 'Unknown',
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
-    )
+    return <JobsOperationsView payload={payload} />
   }
 
   if (viewId === 'events') {
