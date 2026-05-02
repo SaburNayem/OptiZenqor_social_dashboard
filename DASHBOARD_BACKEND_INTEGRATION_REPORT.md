@@ -1,51 +1,28 @@
 # Dashboard Backend Integration Report
 
-Updated: 2026-05-01
+Last updated: 2026-05-02
 
-## Current Local State
+## Files Changed In This Pass
 
-The local dashboard is no longer just the public Vite starter. It is a working admin console wired to backend APIs and verified locally.
+- `src/config/navigation.js`
+- `DASHBOARD_BACKEND_INTEGRATION_REPORT.md`
 
-## Verified Dashboard Capabilities
+## What Changed
 
-- admin login via `POST /admin/auth/login`
-- session restore via `GET /admin/auth/me`
-- refresh flow via `POST /admin/auth/refresh`
-- logout via `POST /admin/auth/logout`
-- live overview via `GET /admin/dashboard/overview`
-- live users via `GET /admin/users`
-- live content moderation via `GET /admin/content`
-- live reports via `GET /admin/reports`
-- live audit logs via `GET /admin/audit-logs`
-- live settings via `GET/PATCH /admin/settings`
-- live app-domain browsing via:
-  - `/marketplace/products`
-  - `/jobs`
-  - `/events`
-  - `/communities`
-  - `/pages`
-  - `/admin/support-operations`
-
-## Local Dashboard File State
-
-- `src/App.jsx` is locally API-driven
-- `.env.example` contains `VITE_API_BASE_URL=http://localhost:3000`
-
-## Remaining Dashboard Gaps
-
-- the dashboard is still implemented as a compact single-file app rather than a fully modular professional admin frontend
-- richer pagination/search/filter controls are still basic for some pages
-- dedicated pages for live streams, notification devices, and wallet/subscription operations are not yet broken out into specialized views
-- mutation coverage is strongest for users/content/reports/settings; broader admin mutations still need expansion
+- Repointed notification campaigns navigation from stale `/admin/broadcast-campaigns` to canonical `/admin/notification-campaigns`.
+- Repointed notification devices navigation from compatibility alias `/admin/notifications/devices` to canonical `/admin/notification-devices`.
 
 ## Validation
 
-- `npm install`: pass in current workspace
-- `npm run lint`: pass
-- `npm run build`: pass
-# 2026-05-01 Update
+- `npm run lint` -> passed
+- `npm run build` -> passed
 
-- Dashboard now keeps its API/session logic in `src/services/apiClient.js` instead of leaving transport/session helpers embedded only in `App.jsx`.
-- Verification after this pass:
-  - `npm run lint`: pass
-  - `npm run build`: pass
+## Remaining Dashboard Gaps
+
+- The dashboard still uses a compact `src/App.jsx` driven structure rather than the requested professional split across `services`, `config`, `layout`, `tables`, `forms`, `pages`, and auth context modules.
+- The dashboard still needs fuller page-level UX for loading skeletons, retry states, detail drawers, confirmation flows, and role-aware action hiding across all admin sections.
+- The dashboard still needs broader authenticated mutation coverage for all requested admin domains beyond the routes updated in this pass.
+
+## Status
+
+The dashboard now points to the corrected backend admin notification endpoints and still builds cleanly. It should not yet be considered fully rebuilt to the requested production-grade admin architecture.
