@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { extractItems } from '../services/apiClient'
 
 function formatNumber(value) {
@@ -37,8 +38,11 @@ export function DashboardView({
   onSaveSettings,
   onRevokeAdminSession,
   onUpdatePremiumPlan,
+  onUpdateSupportTicket,
+  onLoadView,
 }) {
   const data = payload?.data ?? {}
+  const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
 
   if (viewId === 'overview') {
     const totals = data.totals ?? {}
@@ -165,20 +169,137 @@ export function DashboardView({
 
   if (viewId === 'support') {
     const tickets = data.tickets ?? []
+    const actions = data.actions ?? []
+    const filters = data.filters ?? {}
+    const resolvedSelectedTicketId =
+      tickets.some((ticket) => ticket.id === selectedSupportTicketId)
+        ? selectedSupportTicketId
+        : (tickets[0]?.id ?? null)
+    const selectedTicket = tickets.find((ticket) => ticket.id === resolvedSelectedTicketId) ?? null
+
     return (
-      <article className="panel">
-        <h3>Support Operations</h3>
-        <Table
-          columns={['Subject', 'Category', 'Status', 'Priority', 'Updated']}
-          rows={tickets.map((ticket) => [
-            ticket.subject,
-            ticket.category,
-            <StatusBadge value={ticket.status} key={`${ticket.id}-status`} />,
-            ticket.priority,
-            new Date(ticket.updatedAt).toLocaleString(),
-          ])}
-        />
-      </article>
+      <section className="stack">
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Support Operations</h3>
+              <p className="panel-copy">Search the live queue, change ticket state, and keep an audit-backed trail.</p>
+            </div>
+            <form
+              className="filters-bar"
+              onSubmit={(event) => {
+                event.preventDefault()
+                const formData = new FormData(event.currentTarget)
+                onLoadView('support', {
+                  page: 1,
+                  limit: 20,
+                  search: String(formData.get('search') ?? '').trim(),
+                  status: String(formData.get('status') ?? '').trim(),
+                  priority: String(formData.get('priority') ?? '').trim(),
+                })
+              }}
+            >
+              <input name="search" type="search" defaultValue={filters.search ?? ''} placeholder="Search subject, category, user" />
+              <select name="status" defaultValue={filters.status ?? ''}>
+                <option value="">All statuses</option>
+                <option value="open">Open</option>
+                <option value="reviewing">Reviewing</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+              <select name="priority" defaultValue={filters.priority ?? ''}>
+                <option value="">All priorities</option>
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+              <button type="submit">Apply</button>
+            </form>
+          </div>
+          <Table
+            columns={['Subject', 'User', 'Category', 'Status', 'Priority', 'Updated', 'Actions']}
+            rows={tickets.map((ticket) => [
+              <button type="button" className="link-button" key={`${ticket.id}-select`} onClick={() => setSelectedSupportTicketId(ticket.id)}>
+                {ticket.subject}
+              </button>,
+              ticket.userName ?? ticket.username ?? ticket.userEmail ?? 'Guest or deleted user',
+              ticket.category,
+              <StatusBadge value={ticket.status} key={`${ticket.id}-status`} />,
+              <StatusBadge value={ticket.priority} key={`${ticket.id}-priority`} />,
+              ticket.updatedAt ? new Date(ticket.updatedAt).toLocaleString() : 'Unknown',
+              <div className="action-row" key={ticket.id}>
+                <button type="button" onClick={() => onUpdateSupportTicket(ticket.id, { status: 'reviewing' })}>
+                  Review
+                </button>
+                <button type="button" onClick={() => onUpdateSupportTicket(ticket.id, { priority: 'high' })}>
+                  Escalate
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateSupportTicket(ticket.id, {
+                      status: 'resolved',
+                      adminNote: 'Resolved from admin dashboard',
+                    })
+                  }
+                >
+                  Resolve
+                </button>
+              </div>,
+            ])}
+          />
+          <PaginationMeta payload={payload} />
+        </article>
+
+        <div className="detail-grid">
+          <article className="panel">
+            <h3>Ticket Detail</h3>
+            {selectedTicket ? (
+              <dl className="detail-list">
+                <div>
+                  <dt>Subject</dt>
+                  <dd>{selectedTicket.subject}</dd>
+                </div>
+                <div>
+                  <dt>User</dt>
+                  <dd>{selectedTicket.userName ?? selectedTicket.username ?? selectedTicket.userEmail ?? 'Guest or deleted user'}</dd>
+                </div>
+                <div>
+                  <dt>Channel</dt>
+                  <dd>{selectedTicket.channel ?? 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Conversation</dt>
+                  <dd>{selectedTicket.conversationStatus ?? 'No conversation yet'}</dd>
+                </div>
+                <div>
+                  <dt>Latest message</dt>
+                  <dd>{selectedTicket.latestMessage ?? 'No recent message'}</dd>
+                </div>
+                <div>
+                  <dt>Admin notes</dt>
+                  <dd>{selectedTicket.adminNotes?.length ? selectedTicket.adminNotes.join(' | ') : 'No admin notes yet'}</dd>
+                </div>
+              </dl>
+            ) : (
+              <div className="empty-panel">Select a ticket to inspect its live support details.</div>
+            )}
+          </article>
+
+          <article className="panel">
+            <h3>Recent Support Actions</h3>
+            <Table
+              columns={['Action', 'Ticket', 'Created']}
+              rows={actions.map((action) => [
+                action.action,
+                action.entityId ?? 'Unknown ticket',
+                action.createdAt ? new Date(action.createdAt).toLocaleString() : 'Unknown',
+              ])}
+            />
+          </article>
+        </div>
+      </section>
     )
   }
 

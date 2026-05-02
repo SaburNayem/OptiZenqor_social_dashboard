@@ -14,6 +14,7 @@ function App() {
   const [session, setSession] = useState(() => readStoredSession())
   const [activeView, setActiveView] = useState('overview')
   const [viewState, setViewState] = useState({ loading: false, error: '', payload: null })
+  const [viewQueries, setViewQueries] = useState({})
   const [globalNotice, setGlobalNotice] = useState('')
   const [isBootstrapping, setIsBootstrapping] = useState(() => Boolean(readStoredSession()?.accessToken))
   const [loginState, setLoginState] = useState({ email: '', password: '', loading: false, error: '' })
@@ -42,15 +43,29 @@ function App() {
 
   const apiRequest = useCallback((endpoint, options = {}) => apiClient.request(endpoint, options), [apiClient])
 
-  const loadView = useCallback(async (viewId) => {
+  const loadView = useCallback(async (viewId, queryOverrides = null) => {
     const item = navigationItems.find((entry) => entry.id === viewId)
     if (!item) {
       return
     }
 
+    const nextQuery =
+      queryOverrides == null
+        ? (viewQueries[viewId] ?? {})
+        : { ...(viewQueries[viewId] ?? {}), ...queryOverrides }
+    const searchParams = new URLSearchParams()
+    for (const [key, value] of Object.entries(nextQuery)) {
+      if (value == null || value === '') {
+        continue
+      }
+      searchParams.set(key, String(value))
+    }
+    const endpoint = searchParams.size > 0 ? `${item.endpoint}?${searchParams.toString()}` : item.endpoint
+
     setViewState({ loading: true, error: '', payload: null })
     try {
-      const payload = await apiRequest(item.endpoint)
+      const payload = await apiRequest(endpoint)
+      setViewQueries((current) => ({ ...current, [viewId]: nextQuery }))
       if (item.id === 'settings') {
         setSettingsDraft(JSON.stringify(payload.data, null, 2))
       }
@@ -62,7 +77,7 @@ function App() {
         payload: null,
       })
     }
-  }, [apiRequest])
+  }, [apiRequest, viewQueries])
 
   useEffect(() => {
     if (!session?.accessToken) {
@@ -216,6 +231,15 @@ function App() {
     await loadView('premiumPlans')
   }
 
+  async function updateSupportTicket(ticketId, patch) {
+    await apiRequest(`/admin/support-operations/${ticketId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Support ticket updated successfully.')
+    await loadView('support')
+  }
+
   if (!session?.accessToken) {
     return (
       <main className="login-shell">
@@ -317,6 +341,8 @@ function App() {
             onSaveSettings={saveSettings}
             onRevokeAdminSession={revokeAdminSession}
             onUpdatePremiumPlan={updatePremiumPlan}
+            onUpdateSupportTicket={updateSupportTicket}
+            onLoadView={loadView}
           />
         ) : null}
       </section>

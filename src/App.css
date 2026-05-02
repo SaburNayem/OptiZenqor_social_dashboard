@@ -65,14 +65,20 @@
 .nav-item,
 .logout-button,
 .action-row button,
-.login-form button {
+.login-form button,
+.filters-bar input,
+.filters-bar select,
+.filters-bar button,
+.link-button {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   font: inherit;
 }
 
 .login-form input,
-.settings-form textarea {
+.settings-form textarea,
+.filters-bar input,
+.filters-bar select {
   width: 100%;
   padding: 14px 16px;
   color: #f7f4ec;
@@ -83,7 +89,9 @@
 .logout-button,
 .action-row button,
 .settings-form button,
-.nav-item {
+.nav-item,
+.filters-bar button,
+.link-button {
   cursor: pointer;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
@@ -215,6 +223,69 @@
   margin-bottom: 16px;
 }
 
+.panel-header {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panel-copy {
+  margin: 10px 0 0;
+  color: rgba(234, 240, 255, 0.72);
+}
+
+.filters-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(2, minmax(0, 0.8fr)) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.filters-bar button {
+  padding: 14px 18px;
+  color: #0b1323;
+  background: linear-gradient(135deg, #f4d27a, #ef8f64);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+.detail-list {
+  display: grid;
+  gap: 14px;
+}
+
+.detail-list div {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.detail-list dt {
+  color: rgba(234, 240, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.76rem;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: #fff7df;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #fff0c8;
+  background: transparent;
+  text-align: left;
+}
+
 .pagination-meta {
   margin: 16px 0 0;
   color: rgba(234, 240, 255, 0.62);
@@ -323,6 +394,10 @@ th {
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -341,5 +416,9 @@ th {
 
   .topbar-meta {
     text-align: left;
+  }
+
+  .filters-bar {
+    grid-template-columns: 1fr;
   }
 }
