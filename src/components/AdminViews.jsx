@@ -45,7 +45,7 @@ function resolveColumns(items) {
 }
 
 function resolveFilters(payload) {
-  return payload?.meta ?? payload?.data?.filters ?? {}
+  return payload?.data?.filters ?? {}
 }
 
 export function DashboardView({

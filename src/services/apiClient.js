@@ -30,10 +30,18 @@ export function normalizePayload(payload) {
   if (!payload || typeof payload !== 'object') {
     return { success: false, message: 'Invalid API response.', data: null, raw: payload }
   }
+  const rawData = payload.data ?? null
+  const data =
+    rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+      ? {
+          ...rawData,
+          ...(payload.pagination ? { pagination: payload.pagination } : {}),
+        }
+      : rawData
   return {
     success: payload.success !== false,
     message: payload.message ?? 'Request completed.',
-    data: payload.data ?? payload,
+    data,
     raw: payload,
   }
 }
@@ -42,12 +50,6 @@ export function extractItems(payload) {
   const data = payload?.data
   if (Array.isArray(data)) {
     return data
-  }
-  if (Array.isArray(payload?.items)) {
-    return payload.items
-  }
-  if (Array.isArray(payload?.results)) {
-    return payload.results
   }
   if (data && typeof data === 'object') {
     for (const key of Object.keys(data)) {
