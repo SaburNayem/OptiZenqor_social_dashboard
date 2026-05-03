@@ -31,13 +31,7 @@ export function normalizePayload(payload) {
     return { success: false, message: 'Invalid API response.', data: null, raw: payload }
   }
   const rawData = payload.data ?? null
-  const data =
-    rawData && typeof rawData === 'object' && !Array.isArray(rawData)
-      ? {
-          ...rawData,
-          ...(payload.pagination ? { pagination: payload.pagination } : {}),
-        }
-      : rawData
+  const data = attachPagination(rawData, payload.pagination)
   return {
     success: payload.success !== false,
     message: payload.message ?? 'Request completed.',
@@ -47,18 +41,62 @@ export function normalizePayload(payload) {
 }
 
 export function extractItems(payload) {
-  const data = payload?.data
-  if (Array.isArray(data)) {
-    return data
-  }
-  if (data && typeof data === 'object') {
-    for (const key of Object.keys(data)) {
-      if (Array.isArray(data[key])) {
-        return data[key]
+  return extractCollection(payload)
+}
+
+export function extractCollection(payload, preferredKeys = []) {
+  const candidates = [payload?.data, payload?.raw?.data, payload?.raw, payload]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate
+    }
+
+    if (candidate && typeof candidate === 'object') {
+      for (const key of preferredKeys) {
+        if (Array.isArray(candidate[key])) {
+          return candidate[key]
+        }
+      }
+
+      for (const key of Object.keys(candidate)) {
+        if (Array.isArray(candidate[key])) {
+          return candidate[key]
+        }
       }
     }
   }
+
   return []
+}
+
+export function extractPagination(payload) {
+  const dataPagination = payload?.data?.pagination
+  if (dataPagination && typeof dataPagination === 'object') {
+    return dataPagination
+  }
+
+  const rawPagination = payload?.raw?.pagination
+  if (rawPagination && typeof rawPagination === 'object') {
+    return rawPagination
+  }
+
+  return null
+}
+
+function attachPagination(data, pagination) {
+  if (Array.isArray(data) || data == null) {
+    return data
+  }
+
+  if (typeof data === 'object') {
+    return {
+      ...data,
+      ...(pagination ? { pagination } : {}),
+    }
+  }
+
+  return data
 }
 
 export function createApiClient({ getSession, onSessionRefresh, onUnauthorized }) {

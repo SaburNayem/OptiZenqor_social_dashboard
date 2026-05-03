@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { extractItems } from '../services/apiClient'
+import { extractItems, extractPagination } from '../services/apiClient'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
 import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
@@ -794,7 +794,7 @@ function FilterForm({ fields, onSubmit }) {
 }
 
 function PaginationMeta({ payload }) {
-  const pagination = payload?.data?.pagination
+  const pagination = extractPagination(payload)
   if (!pagination) {
     return null
   }

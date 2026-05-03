@@ -1,5 +1,7 @@
+import { extractPagination } from '../../services/apiClient'
+
 export function PaginationMeta({ payload, formatNumber }) {
-  const pagination = payload?.data?.pagination
+  const pagination = extractPagination(payload)
   if (!pagination) {
     return null
   }

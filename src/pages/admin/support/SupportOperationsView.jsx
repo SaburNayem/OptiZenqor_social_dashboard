@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
-import { extractItems } from '../../../services/apiClient'
+import { extractCollection } from '../../../services/apiClient'
 
 function formatDate(value) {
   if (!value) {
@@ -51,7 +51,7 @@ function FilterForm({ fields, onSubmit }) {
 
 export function SupportOperationsView({ payload, filters, onUpdateSupportTicket, onLoadView }) {
   const data = payload?.data ?? {}
-  const tickets = extractItems({ data: { items: data.tickets ?? [] } })
+  const tickets = extractCollection(payload, ['tickets', 'items', 'results'])
   const actions = data.actions ?? []
   const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
 
