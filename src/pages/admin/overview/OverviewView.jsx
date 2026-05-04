@@ -1,13 +1,42 @@
 import { ChartCard, DataList, EmptyState, MetricCard } from '../../../components/common/AdminPrimitives'
 
+function hasValue(value) {
+  return value !== null && value !== undefined && value !== ''
+}
+
 function formatNumber(value) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
+  if (!hasValue(value)) {
+    return 'N/A'
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : 'N/A'
 }
 
 function formatMoney(value) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? `$${numeric.toLocaleString()}` : '$0'
+  if (!hasValue(value)) {
+    return 'N/A'
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? `$${numeric.toLocaleString()}` : 'N/A'
+}
+
+function sumDefined(values) {
+  let total = 0
+  let count = 0
+
+  values.forEach((value) => {
+    if (!hasValue(value)) {
+      return
+    }
+
+    const numeric = Number(value)
+    if (Number.isFinite(numeric)) {
+      total += numeric
+      count += 1
+    }
+  })
+
+  return count > 0 ? total : null
 }
 
 function MiniBars({ items, valueKey = 'value' }) {
@@ -42,14 +71,15 @@ export function OverviewView({ data }) {
   const breakdowns = data?.breakdowns ?? {}
   const summaries = data?.summaries ?? {}
   const recentActivity = data?.recentActivity ?? []
+  const totalContent = sumDefined([totals.posts, totals.reels, totals.stories])
 
   const cards = [
-    { label: 'Users', value: formatNumber(totals.users), helper: `${formatNumber(totals.activeUsers)} active` },
-    { label: 'Content', value: formatNumber((totals.posts ?? 0) + (totals.reels ?? 0) + (totals.stories ?? 0)), helper: `${formatNumber(totals.posts)} posts live` },
-    { label: 'Open Reports', value: formatNumber(totals.openReports), helper: `${formatNumber(totals.reports)} total reports` },
-    { label: 'Support Queue', value: formatNumber(totals.supportTickets), helper: `${formatNumber(health.supportQueue)} waiting now` },
-    { label: 'Subscriptions', value: formatNumber(totals.activeSubscriptions), helper: 'Active billing relationships' },
-    { label: 'Revenue', value: formatMoney(totals.revenue), helper: 'Wallet transaction sum' },
+    { label: 'Users', value: formatNumber(totals.users), helper: hasValue(totals.activeUsers) ? `${formatNumber(totals.activeUsers)} active` : '' },
+    { label: 'Content', value: formatNumber(totalContent), helper: hasValue(totals.posts) ? `${formatNumber(totals.posts)} posts live` : '' },
+    { label: 'Open Reports', value: formatNumber(totals.openReports), helper: hasValue(totals.reports) ? `${formatNumber(totals.reports)} total reports` : '' },
+    { label: 'Support Queue', value: formatNumber(totals.supportTickets), helper: hasValue(health.supportQueue) ? `${formatNumber(health.supportQueue)} waiting now` : '' },
+    { label: 'Subscriptions', value: formatNumber(totals.activeSubscriptions), helper: hasValue(totals.activeSubscriptions) ? 'Active billing relationships' : '' },
+    { label: 'Revenue', value: formatMoney(totals.revenue), helper: hasValue(totals.revenue) ? 'Wallet transaction sum' : '' },
   ]
 
   const userGrowth =

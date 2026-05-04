@@ -22,7 +22,7 @@ export function EventsOperationsView({ payload }) {
         columns={['Title', 'Organizer', 'Location', 'Status', 'Participants', 'Price']}
         rows={items.map((item) => [
           item.title,
-          item.organizerName ?? item.organizerId ?? 'Unknown',
+          item.organizerName ?? item.organizerId ?? 'N/A',
           item.location,
           <StatusBadge value={item.status} key={`${item.id}-status`} />,
           formatNumber(item.participants),

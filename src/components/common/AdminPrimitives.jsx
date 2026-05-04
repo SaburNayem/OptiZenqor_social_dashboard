@@ -137,7 +137,7 @@ export function StatusBadge({ value }) {
           ? 'bad'
           : 'neutral'
 
-  return <span className={`status-badge ${tone}`}>{String(value ?? 'Unknown')}</span>
+  return <span className={`status-badge ${tone}`}>{String(value ?? 'N/A')}</span>
 }
 
 function escapeCsvValue(value) {

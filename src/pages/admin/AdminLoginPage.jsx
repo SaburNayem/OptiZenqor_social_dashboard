@@ -33,8 +33,7 @@ export function AdminLoginPage() {
           <p className="eyebrow">OptiZenqor Admin</p>
           <h1>Control the platform from live PostgreSQL data.</h1>
           <p>
-            This dashboard uses authenticated backend APIs only. No starter stats,
-            no mock charts, and no local runtime dashboards.
+            This dashboard uses authenticated backend APIs only and renders live operational data.
           </p>
           {!API_BASE_URL ? (
             <p className="error-text">

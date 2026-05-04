@@ -35,7 +35,7 @@ export function JobsOperationsView({ payload }) {
             item.type,
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             formatNumber(item.applications),
-            item.recruiterName ?? item.recruiterId ?? 'Unknown',
+            item.recruiterName ?? item.recruiterId ?? 'N/A',
           ])}
         />
         <PaginationMeta payload={payload} formatNumber={formatNumber} />
@@ -51,19 +51,19 @@ export function JobsOperationsView({ payload }) {
             </div>
             <div>
               <dt>Company</dt>
-              <dd>{selectedJob.company ?? selectedJob.companyName ?? 'Unknown company'}</dd>
+              <dd>{selectedJob.company ?? selectedJob.companyName ?? 'N/A'}</dd>
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{selectedJob.status ?? 'Unknown'}</dd>
+              <dd>{selectedJob.status ?? 'N/A'}</dd>
             </div>
             <div>
               <dt>Recruiter</dt>
-              <dd>{selectedJob.recruiterName ?? selectedJob.recruiterId ?? 'Unknown recruiter'}</dd>
+              <dd>{selectedJob.recruiterName ?? selectedJob.recruiterId ?? 'N/A'}</dd>
             </div>
             <div>
               <dt>Description</dt>
-              <dd>{selectedJob.description ?? 'No description returned by the API.'}</dd>
+              <dd>{selectedJob.description ?? 'N/A'}</dd>
             </div>
           </dl>
         ) : (

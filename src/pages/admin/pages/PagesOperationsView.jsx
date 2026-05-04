@@ -22,7 +22,7 @@ export function PagesOperationsView({ payload }) {
         columns={['Name', 'Owner', 'Category', 'Location', 'Followers', 'Status']}
         rows={items.map((item) => [
           item.name,
-          item.ownerName ?? item.ownerId ?? 'Unknown',
+          item.ownerName ?? item.ownerId ?? 'N/A',
           item.category,
           item.location,
           formatNumber(item.followerCount),

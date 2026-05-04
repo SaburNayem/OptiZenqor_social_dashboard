@@ -22,7 +22,7 @@ export function LiveStreamsOperationsView({ payload }) {
         columns={['Title', 'Host', 'Category', 'Status', 'Viewers', 'Engagement']}
         rows={items.map((item) => [
           item.title,
-          item.hostName ?? item.hostId ?? 'Unknown',
+          item.hostName ?? item.hostId ?? 'N/A',
           item.category,
           <StatusBadge value={item.status} key={`${item.id}-status`} />,
           formatNumber(item.viewerCount),

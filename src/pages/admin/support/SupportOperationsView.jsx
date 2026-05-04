@@ -4,7 +4,7 @@ import { extractCollection } from '../../../services/apiClient'
 
 function formatDate(value) {
   if (!value) {
-    return 'Unknown'
+    return 'N/A'
   }
 
   const parsed = new Date(value)
@@ -84,7 +84,7 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
             <button type="button" className="link-button" key={`${ticket.id}-select`} onClick={() => setSelectedSupportTicketId(ticket.id)}>
               {ticket.subject}
             </button>,
-            ticket.userLabel ?? ticket.userName ?? ticket.username ?? ticket.userEmail ?? 'Unknown user',
+            ticket.userLabel ?? ticket.userName ?? ticket.username ?? ticket.userEmail ?? 'N/A',
             ticket.category,
             <StatusBadge value={ticket.status} key={`${ticket.id}-status`} />,
             <StatusBadge value={ticket.priority} key={`${ticket.id}-priority`} />,
@@ -124,23 +124,23 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
               </div>
               <div>
                 <dt>User</dt>
-                <dd>{selectedTicket.userLabel ?? selectedTicket.userName ?? selectedTicket.username ?? selectedTicket.userEmail ?? 'Unknown user'}</dd>
+                <dd>{selectedTicket.userLabel ?? selectedTicket.userName ?? selectedTicket.username ?? selectedTicket.userEmail ?? 'N/A'}</dd>
               </div>
               <div>
                 <dt>Channel</dt>
-                <dd>{selectedTicket.channel ?? 'Unknown'}</dd>
+                <dd>{selectedTicket.channel ?? 'N/A'}</dd>
               </div>
               <div>
                 <dt>Conversation</dt>
-                <dd>{selectedTicket.conversationStatus ?? 'No conversation yet'}</dd>
+                <dd>{selectedTicket.conversationStatus ?? 'N/A'}</dd>
               </div>
               <div>
                 <dt>Latest message</dt>
-                <dd>{selectedTicket.latestMessage ?? 'No recent message'}</dd>
+                <dd>{selectedTicket.latestMessage ?? 'N/A'}</dd>
               </div>
               <div>
                 <dt>Admin notes</dt>
-                <dd>{selectedTicket.adminNotes?.length ? selectedTicket.adminNotes.join(' | ') : 'No admin notes yet'}</dd>
+                <dd>{selectedTicket.adminNotes?.length ? selectedTicket.adminNotes.join(' | ') : 'N/A'}</dd>
               </div>
             </dl>
           ) : (
@@ -154,7 +154,7 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
             columns={['Action', 'Ticket', 'Created']}
             rows={actions.map((action) => [
               action.action,
-              action.entityId ?? 'Unknown ticket',
+              action.entityId ?? 'N/A',
               formatDate(action.createdAt),
             ])}
           />

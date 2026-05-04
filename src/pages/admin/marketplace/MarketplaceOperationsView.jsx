@@ -9,7 +9,7 @@ function formatNumber(value) {
 
 function formatDate(value) {
   if (!value) {
-    return 'Unknown'
+    return 'N/A'
   }
 
   const parsed = new Date(value)
@@ -43,7 +43,7 @@ export function MarketplaceOperationsView({ payload }) {
             item.category,
             `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.sellerName ?? item.sellerId ?? 'Unknown',
+            item.sellerName ?? item.sellerId ?? 'N/A',
             formatDate(item.createdAt),
           ])}
         />
@@ -60,11 +60,11 @@ export function MarketplaceOperationsView({ payload }) {
             </div>
             <div>
               <dt>Seller</dt>
-              <dd>{selectedItem.sellerName ?? selectedItem.sellerId ?? 'Unknown seller'}</dd>
+              <dd>{selectedItem.sellerName ?? selectedItem.sellerId ?? 'N/A'}</dd>
             </div>
             <div>
               <dt>Status</dt>
-              <dd>{selectedItem.status ?? 'Unknown'}</dd>
+              <dd>{selectedItem.status ?? 'N/A'}</dd>
             </div>
             <div>
               <dt>Price</dt>
@@ -72,7 +72,7 @@ export function MarketplaceOperationsView({ payload }) {
             </div>
             <div>
               <dt>Description</dt>
-              <dd>{selectedItem.description ?? 'No description returned by the API.'}</dd>
+              <dd>{selectedItem.description ?? 'N/A'}</dd>
             </div>
           </dl>
         ) : (

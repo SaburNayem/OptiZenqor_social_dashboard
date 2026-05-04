@@ -22,7 +22,7 @@ export function CommunitiesOperationsView({ payload }) {
         columns={['Name', 'Owner', 'Privacy', 'Category', 'Members', 'Status']}
         rows={items.map((item) => [
           item.name,
-          item.ownerName ?? item.ownerId ?? 'Unknown',
+          item.ownerName ?? item.ownerId ?? 'N/A',
           item.privacy,
           item.category,
           formatNumber(item.memberCount),

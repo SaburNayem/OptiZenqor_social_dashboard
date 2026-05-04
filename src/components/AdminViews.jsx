@@ -10,13 +10,16 @@ import { PagesOperationsView } from '../pages/admin/pages/PagesOperationsView'
 import { LiveStreamsOperationsView } from '../pages/admin/live-streams/LiveStreamsOperationsView'
 
 function formatNumber(value) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
+  if (value == null || value === '') {
+    return 'N/A'
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : 'N/A'
 }
 
 function formatDate(value) {
   if (!value) {
-    return 'Unknown'
+    return 'N/A'
   }
 
   const parsed = new Date(value)
@@ -158,7 +161,7 @@ export function DashboardView({
           rows={items.map((item) => [
             item.id,
             item.targetType,
-            <StatusBadge value={item.status ?? 'Unknown'} key={`${item.id}-status`} />,
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
             item.caption ?? item.text ?? item.title ?? 'No preview text',
             formatDate(item.createdAt),
             <div className="action-row" key={item.id}>
@@ -199,7 +202,7 @@ export function DashboardView({
             item.reason,
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             item.reporterName,
-            item.targetUserName ?? item.targetEntityId ?? 'Unknown',
+            item.targetUserName ?? item.targetEntityId ?? 'N/A',
             <div className="action-row" key={item.id}>
               <button type="button" onClick={() => onUpdateReport(item.id, { status: 'reviewing', note: 'Taken into review' })}>
                 Review
@@ -283,7 +286,7 @@ export function DashboardView({
           rows={items.map((item) => [
             item.kind,
             item.label,
-            item.userName ?? item.userId ?? 'Unknown',
+            item.userName ?? item.userId ?? 'N/A',
             item.amount == null ? 'N/A' : formatNumber(item.amount),
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             formatDate(item.createdAt),
@@ -302,7 +305,7 @@ export function DashboardView({
         <Table
           columns={['User', 'Type', 'Amount', 'Currency', 'Status', 'Created']}
           rows={items.map((item) => [
-            item.userName ?? item.userId ?? 'Unknown',
+            item.userName ?? item.userId ?? 'N/A',
             item.type,
             formatNumber(item.amount),
             item.currency ?? 'BDT',
@@ -323,8 +326,8 @@ export function DashboardView({
         <Table
           columns={['User', 'Plan', 'Provider', 'Status', 'Auto Renew', 'Period End']}
           rows={items.map((item) => [
-            item.userName ?? item.userId ?? 'Unknown',
-            item.planName ?? item.planCode ?? 'Unknown plan',
+            item.userName ?? item.userId ?? 'N/A',
+            item.planName ?? item.planCode ?? 'N/A',
             item.provider,
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
             item.autoRenew ? 'Yes' : 'No',
@@ -462,9 +465,9 @@ export function DashboardView({
             columns={['Name', 'Audience', 'Status', 'Schedule', 'Actions']}
             rows={items.map((item) => [
               item.name ?? item.title ?? item.id,
-              item.audience ?? item.segmentId ?? 'All users',
-              <StatusBadge value={item.status ?? 'scheduled'} key={`${item.id}-status`} />,
-              item.schedule ?? item.createdAt ?? 'Not scheduled',
+              item.audience ?? item.segmentId ?? 'N/A',
+              <StatusBadge value={item.status} key={`${item.id}-status`} />,
+              item.schedule ?? item.createdAt ?? 'N/A',
               <div className="action-row" key={item.id}>
                 <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'send')} disabled={item.status === 'sent'}>
                   Send
@@ -533,7 +536,7 @@ export function DashboardView({
                         [item.id]: { ...draft, schedule: event.target.value },
                       }))
                     }
-                    placeholder="2026-05-02T18:00:00Z"
+                    placeholder="Schedule timestamp"
                   />
                   <button type="submit">Update</button>
                 </form>
@@ -577,7 +580,7 @@ export function DashboardView({
             <input
               value={campaignDraft.schedule}
               onChange={(event) => setCampaignDraft((current) => ({ ...current, schedule: event.target.value }))}
-              placeholder="2026-05-02T18:00:00Z"
+              placeholder="Schedule timestamp"
             />
             <button type="submit" disabled={!campaignDraft.name.trim() || !campaignDraft.schedule.trim()}>
               Create campaign
@@ -616,10 +619,10 @@ export function DashboardView({
             columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Actions']}
             rows={items.map((item) => [
               <button type="button" className="link-button" key={`${item.id}-select`} onClick={() => setSelectedNotificationDeviceId(item.id)}>
-                {item.userName ?? item.userId ?? 'Unknown'}
+                {item.userName ?? item.userId ?? 'N/A'}
               </button>,
               item.platform,
-              item.deviceLabel ?? 'Unknown device',
+              item.deviceLabel ?? 'N/A',
               <StatusBadge value={item.status} key={`${item.id}-status`} />,
               formatDate(item.lastSeenAt),
               <div className="action-row" key={item.id}>
@@ -639,23 +642,23 @@ export function DashboardView({
               <dl className="detail-list">
                 <div>
                   <dt>User</dt>
-                  <dd>{selectedDevice.userName ?? selectedDevice.userId ?? 'Unknown user'}</dd>
+                  <dd>{selectedDevice.userName ?? selectedDevice.userId ?? 'N/A'}</dd>
                 </div>
                 <div>
                   <dt>Platform</dt>
-                  <dd>{selectedDevice.platform ?? 'Unknown'}</dd>
+                  <dd>{selectedDevice.platform ?? 'N/A'}</dd>
                 </div>
                 <div>
                   <dt>Device Label</dt>
-                  <dd>{selectedDevice.deviceLabel ?? 'Unknown device'}</dd>
+                  <dd>{selectedDevice.deviceLabel ?? 'N/A'}</dd>
                 </div>
                 <div>
                   <dt>Status</dt>
-                  <dd>{selectedDevice.status ?? 'Unknown'}</dd>
+                  <dd>{selectedDevice.status ?? 'N/A'}</dd>
                 </div>
                 <div>
                   <dt>Token</dt>
-                  <dd>{selectedDevice.token ?? 'Unavailable'}</dd>
+                  <dd>{selectedDevice.token ?? 'N/A'}</dd>
                 </div>
                 <div>
                   <dt>Last Seen</dt>
@@ -690,9 +693,9 @@ export function DashboardView({
         <Table
           columns={['Admin', 'Role', 'Device', 'Status', 'Last Active', 'Actions']}
           rows={items.map((item) => [
-            item.name ?? item.email ?? item.adminId ?? 'Admin',
-            item.role ?? 'Admin',
-            item.device ?? 'Dashboard session',
+            item.name ?? item.email ?? item.adminId ?? 'N/A',
+            item.role ?? 'N/A',
+            item.device ?? 'N/A',
             <StatusBadge value={item.current ? 'active' : 'revoked'} key={`${item.id}-status`} />,
             formatDate(item.lastActive),
             <div className="action-row" key={item.id}>
@@ -716,7 +719,7 @@ export function DashboardView({
           rows={items.map((item) => [
             item.action,
             `${item.entityType}${item.entityId ? `:${item.entityId}` : ''}`,
-            item.actorName ?? 'System',
+            item.actorName ?? 'N/A',
             formatDate(item.createdAt),
           ])}
         />
@@ -859,5 +862,5 @@ export function StatusBadge({ value }) {
           ? 'bad'
           : 'neutral'
 
-  return <span className={`status-badge ${tone}`}>{String(value ?? 'Unknown')}</span>
+  return <span className={`status-badge ${tone}`}>{String(value ?? 'N/A')}</span>
 }
