@@ -14,10 +14,10 @@
 .panel,
 .metric-card,
 .empty-panel {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(7, 12, 24, 0.78);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-bg);
   backdrop-filter: blur(16px);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-panel);
 }
 
 .login-panel {
@@ -34,7 +34,7 @@
 .sidebar h2,
 .panel h3 {
   margin: 0;
-  color: #f7f4ec;
+  color: var(--color-text-heading);
 }
 
 .login-copy p,
@@ -45,7 +45,7 @@
 .table-wrap td,
 .table-wrap th,
 .data-list dt {
-  color: rgba(234, 240, 255, 0.74);
+  color: var(--color-text-secondary);
 }
 
 .login-form,
@@ -74,7 +74,7 @@
 .filters-bar button,
 .link-button {
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border-strong);
   font: inherit;
 }
 
@@ -86,8 +86,8 @@
 .filters-bar select {
   width: 100%;
   padding: 14px 16px;
-  color: #f7f4ec;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
 }
 
 .login-form button,
@@ -106,13 +106,13 @@
 .settings-form button,
 .inline-form button {
   padding: 14px 18px;
-  color: #0b1323;
-  background: linear-gradient(135deg, #f4d27a, #ef8f64);
+  color: var(--color-button-text-dark);
+  background: linear-gradient(135deg, var(--color-accent-start), var(--color-accent-end));
 }
 
 .error-text {
   margin: 0;
-  color: #ffb0b0;
+  color: var(--color-error);
 }
 
 .eyebrow {
@@ -149,7 +149,7 @@
   gap: 4px;
   padding: 14px 16px;
   color: #eef4ff;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-faint);
 }
 
 .nav-item small {
@@ -158,14 +158,14 @@
 
 .nav-item.active,
 .nav-item:hover {
-  border-color: rgba(244, 210, 122, 0.45);
-  background: linear-gradient(135deg, rgba(244, 210, 122, 0.18), rgba(112, 176, 255, 0.14));
+  border-color: var(--color-accent-border);
+  background: linear-gradient(135deg, var(--color-accent-hover-start), var(--color-accent-hover-end));
 }
 
 .logout-button {
   padding: 12px 14px;
-  color: #f7f4ec;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
 }
 
 .workspace {
@@ -187,14 +187,14 @@
 
 .topbar-meta strong {
   display: block;
-  color: #fff6df;
+  color: var(--color-text-strong);
 }
 
 .notice-banner {
   margin: 0;
   padding: 12px 14px;
   border-radius: 16px;
-  background: rgba(112, 176, 255, 0.12);
+  background: var(--color-accent-wash);
 }
 
 .stack {
@@ -229,7 +229,7 @@
 .metric-card small {
   display: block;
   margin-top: 10px;
-  color: rgba(234, 240, 255, 0.62);
+  color: var(--color-text-muted);
 }
 
 .panel h3 {
@@ -244,7 +244,7 @@
 
 .panel-copy {
   margin: 10px 0 0;
-  color: rgba(234, 240, 255, 0.72);
+  color: var(--color-text-soft);
 }
 
 .filters-bar {
@@ -263,8 +263,8 @@
 
 .filters-bar button {
   padding: 14px 18px;
-  color: #0b1323;
-  background: linear-gradient(135deg, #f4d27a, #ef8f64);
+  color: var(--color-button-text-dark);
+  background: linear-gradient(135deg, var(--color-accent-start), var(--color-accent-end));
 }
 
 .detail-grid {
@@ -282,7 +282,7 @@
   display: grid;
   gap: 6px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .detail-list dt {
@@ -294,21 +294,21 @@
 
 .detail-list dd {
   margin: 0;
-  color: #fff7df;
+  color: var(--color-text-highlight);
 }
 
 .link-button {
   padding: 0;
   border: 0;
   border-radius: 0;
-  color: #fff0c8;
+  color: var(--color-text-link);
   background: transparent;
   text-align: left;
 }
 
 .pagination-meta {
   margin: 16px 0 0;
-  color: rgba(234, 240, 255, 0.62);
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
@@ -322,12 +322,12 @@
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .data-list dd {
   margin: 0;
-  color: #fff7df;
+  color: var(--color-text-highlight);
 }
 
 .overview-breakdowns {
@@ -356,20 +356,20 @@
   min-height: 140px;
   padding: 10px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-soft);
 }
 
 .mini-bar-fill {
   width: 100%;
   border-radius: 14px;
-  background: linear-gradient(180deg, #f4d27a 0%, #ef8f64 100%);
+  background: linear-gradient(180deg, var(--color-accent-start) 0%, var(--color-accent-end) 100%);
 }
 
 .mini-bar-label,
 .mini-bar-value,
 .activity-item span,
 .activity-item time {
-  color: rgba(234, 240, 255, 0.72);
+  color: var(--color-text-soft);
   font-size: 0.88rem;
 }
 
@@ -383,7 +383,7 @@
   gap: 4px;
   padding: 14px 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-soft);
 }
 
 .table-wrap {
@@ -400,7 +400,7 @@ td {
   padding: 12px 10px;
   text-align: left;
   vertical-align: top;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--color-border);
 }
 
 th {
@@ -417,7 +417,7 @@ th {
 
 .action-row button {
   padding: 9px 12px;
-  color: #f7f4ec;
+  color: var(--color-text-primary);
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -433,23 +433,23 @@ th {
 }
 
 .status-badge.good {
-  background: rgba(73, 190, 137, 0.18);
-  color: #9ef1bf;
+  background: var(--color-status-good-bg);
+  color: var(--color-status-good-text);
 }
 
 .status-badge.warn {
-  background: rgba(244, 210, 122, 0.18);
-  color: #ffe29c;
+  background: var(--color-status-warn-bg);
+  color: var(--color-status-warn-text);
 }
 
 .status-badge.bad {
-  background: rgba(255, 120, 120, 0.18);
-  color: #ffb8b8;
+  background: var(--color-status-bad-bg);
+  color: var(--color-status-bad-text);
 }
 
 .status-badge.neutral {
-  background: rgba(255, 255, 255, 0.08);
-  color: #edf3ff;
+  background: var(--color-status-neutral-bg);
+  color: var(--color-status-neutral-text);
 }
 
 .settings-form textarea {
@@ -458,7 +458,7 @@ th {
 }
 
 .empty-panel.error {
-  color: #ffb0b0;
+  color: var(--color-error);
 }
 
 @media (max-width: 1080px) {

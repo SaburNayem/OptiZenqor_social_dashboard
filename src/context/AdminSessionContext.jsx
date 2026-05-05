@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   API_BASE_URL,
   clearStoredSession,
@@ -12,6 +12,7 @@ const AdminSessionContext = createContext(null)
 export function AdminSessionProvider({ children }) {
   const [session, setSession] = useState(() => readStoredSession())
   const [isBootstrapping, setIsBootstrapping] = useState(() => Boolean(readStoredSession()?.accessToken))
+  const bootstrappedTokenRef = useRef(null)
 
   const apiClient = useMemo(
     () =>
@@ -34,6 +35,12 @@ export function AdminSessionProvider({ children }) {
 
     async function bootstrapSession() {
       if (!session?.accessToken) {
+        bootstrappedTokenRef.current = null
+        setIsBootstrapping(false)
+        return
+      }
+
+      if (bootstrappedTokenRef.current === session.accessToken) {
         setIsBootstrapping(false)
         return
       }
@@ -44,6 +51,7 @@ export function AdminSessionProvider({ children }) {
         if (cancelled) {
           return
         }
+        bootstrappedTokenRef.current = session.accessToken
         const nextSession = {
           ...(readStoredSession() ?? {}),
           admin: payload.data,
@@ -54,6 +62,7 @@ export function AdminSessionProvider({ children }) {
         if (cancelled) {
           return
         }
+        bootstrappedTokenRef.current = null
         clearStoredSession()
         setSession(null)
       } finally {

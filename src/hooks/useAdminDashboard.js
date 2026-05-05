@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { navigationItems } from '../config/navigation'
 import { useAdminSession } from './useAdminSession'
 
@@ -6,7 +6,7 @@ export function useAdminDashboard() {
   const { apiRequest } = useAdminSession()
   const [activeView, setActiveView] = useState('overview')
   const [viewState, setViewState] = useState({ loading: false, error: '', payload: null })
-  const [viewQueries, setViewQueries] = useState({})
+  const viewQueriesRef = useRef({})
   const [globalNotice, setGlobalNotice] = useState('')
   const [settingsDraft, setSettingsDraft] = useState('{}')
 
@@ -23,8 +23,8 @@ export function useAdminDashboard() {
 
     const nextQuery =
       queryOverrides == null
-        ? (viewQueries[viewId] ?? {})
-        : { ...(viewQueries[viewId] ?? {}), ...queryOverrides }
+        ? (viewQueriesRef.current[viewId] ?? {})
+        : { ...(viewQueriesRef.current[viewId] ?? {}), ...queryOverrides }
 
     const searchParams = new URLSearchParams()
     for (const [key, value] of Object.entries(nextQuery)) {
@@ -39,7 +39,7 @@ export function useAdminDashboard() {
     setViewState({ loading: true, error: '', payload: null })
     try {
       const payload = await apiRequest(endpoint)
-      setViewQueries((current) => ({ ...current, [viewId]: nextQuery }))
+      viewQueriesRef.current = { ...viewQueriesRef.current, [viewId]: nextQuery }
       if (item.id === 'settings') {
         setSettingsDraft(JSON.stringify(payload.data, null, 2))
       }
@@ -51,7 +51,7 @@ export function useAdminDashboard() {
         payload: null,
       })
     }
-  }, [apiRequest, viewQueries])
+  }, [apiRequest])
 
   const refreshActiveView = useCallback(async () => {
     await loadView(activeItem.id)
