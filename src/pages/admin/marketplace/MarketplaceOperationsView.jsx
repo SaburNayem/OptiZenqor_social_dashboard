@@ -16,13 +16,41 @@ function formatDate(value) {
   return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString()
 }
 
-export function MarketplaceOperationsView({ payload }) {
+export function MarketplaceOperationsView({
+  payload,
+  onCreateMarketplaceItem,
+  onUpdateMarketplaceItem,
+  onDeleteMarketplaceItem,
+}) {
   const items = extractItems(payload)
   const [selectedItemId, setSelectedItemId] = useState(null)
+  const [createDraft, setCreateDraft] = useState({
+    sellerId: '',
+    title: '',
+    description: '',
+    price: '',
+    category: '',
+    status: 'draft',
+  })
   const selectedItem =
     items.find((item) => item.id === selectedItemId) ??
     items[0] ??
     null
+  const [editDraft, setEditDraft] = useState(null)
+
+  const resolvedEditDraft =
+    selectedItem == null
+      ? null
+      : editDraft?.id === selectedItem.id
+        ? editDraft
+        : {
+            id: selectedItem.id,
+            title: selectedItem.title ?? '',
+            description: selectedItem.description ?? '',
+            price: String(selectedItem.price ?? ''),
+            category: selectedItem.category ?? '',
+            status: selectedItem.status ?? 'draft',
+          }
 
   return (
     <section className="stack">
@@ -74,10 +102,136 @@ export function MarketplaceOperationsView({ payload }) {
               <dt>Description</dt>
               <dd>{selectedItem.description ?? 'N/A'}</dd>
             </div>
+            <div>
+              <dt>Actions</dt>
+              <dd>
+                <div className="action-row">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateMarketplaceItem?.(selectedItem.id, {
+                        status: selectedItem.status === 'active' ? 'archived' : 'active',
+                      })
+                    }
+                  >
+                    {selectedItem.status === 'active' ? 'Archive' : 'Activate'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteMarketplaceItem?.(selectedItem.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </dd>
+            </div>
           </dl>
         ) : (
           <div className="empty-panel">Select a listing to inspect its live detail payload.</div>
         )}
+      </article>
+
+      <article className="panel">
+        <h3>Update Listing</h3>
+        {selectedItem && resolvedEditDraft ? (
+          <form
+            className="inline-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onUpdateMarketplaceItem?.(selectedItem.id, {
+                title: resolvedEditDraft.title.trim(),
+                description: resolvedEditDraft.description.trim(),
+                price: Number(resolvedEditDraft.price),
+                category: resolvedEditDraft.category.trim(),
+                status: resolvedEditDraft.status,
+              })
+            }}
+          >
+            <input
+              value={resolvedEditDraft.title}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, title: event.target.value }))}
+              placeholder="Title"
+            />
+            <input
+              value={resolvedEditDraft.category}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, category: event.target.value }))}
+              placeholder="Category"
+            />
+            <input
+              value={resolvedEditDraft.price}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, price: event.target.value }))}
+              placeholder="Price"
+              type="number"
+              min="0"
+              step="0.01"
+            />
+            <select
+              value={resolvedEditDraft.status}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, status: event.target.value }))}
+            >
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="sold">Sold</option>
+            </select>
+            <input
+              value={resolvedEditDraft.description}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, description: event.target.value }))}
+              placeholder="Description"
+            />
+            <button type="submit">Save listing</button>
+          </form>
+        ) : (
+          <div className="empty-panel">Select a listing to update its live marketplace record.</div>
+        )}
+      </article>
+
+      <article className="panel">
+        <h3>Create Listing</h3>
+        <form
+          className="inline-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onCreateMarketplaceItem?.({
+              sellerId: createDraft.sellerId.trim(),
+              title: createDraft.title.trim(),
+              description: createDraft.description.trim(),
+              price: Number(createDraft.price),
+              category: createDraft.category.trim(),
+              status: createDraft.status,
+            })
+            setCreateDraft({
+              sellerId: '',
+              title: '',
+              description: '',
+              price: '',
+              category: '',
+              status: 'draft',
+            })
+          }}
+        >
+          <input value={createDraft.sellerId} onChange={(event) => setCreateDraft((current) => ({ ...current, sellerId: event.target.value }))} placeholder="Seller ID" />
+          <input value={createDraft.title} onChange={(event) => setCreateDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Title" />
+          <input value={createDraft.category} onChange={(event) => setCreateDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+          <input value={createDraft.price} onChange={(event) => setCreateDraft((current) => ({ ...current, price: event.target.value }))} placeholder="Price" type="number" min="0" step="0.01" />
+          <select value={createDraft.status} onChange={(event) => setCreateDraft((current) => ({ ...current, status: event.target.value }))}>
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+          </select>
+          <input value={createDraft.description} onChange={(event) => setCreateDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
+          <button
+            type="submit"
+            disabled={
+              !createDraft.sellerId.trim() ||
+              !createDraft.title.trim() ||
+              !createDraft.description.trim() ||
+              !createDraft.category.trim() ||
+              !createDraft.price
+            }
+          >
+            Create listing
+          </button>
+        </form>
       </article>
     </section>
   )

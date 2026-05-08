@@ -65,6 +65,7 @@ export function AdminWorkspacePage() {
             setSettingsDraft={setSettingsDraft}
             onUpdateUser={actions.updateUser}
             onModerateContent={actions.moderateContent}
+            onModerateComment={actions.moderateComment}
             onUpdateReport={actions.updateReport}
             onSaveSettings={actions.saveSettings}
             onRevokeAdminSession={actions.revokeAdminSession}
@@ -76,6 +77,18 @@ export function AdminWorkspacePage() {
             onRunNotificationCampaignAction={actions.runNotificationCampaignAction}
             onUpdateSupportTicket={actions.updateSupportTicket}
             onUpdateNotificationDevice={actions.updateNotificationDevice}
+            onCreateMarketplaceItem={actions.createMarketplaceItem}
+            onUpdateMarketplaceItem={actions.updateMarketplaceItem}
+            onDeleteMarketplaceItem={actions.deleteMarketplaceItem}
+            onCreateJob={actions.createJob}
+            onUpdateJob={actions.updateJob}
+            onDeleteJob={actions.deleteJob}
+            onCreateEvent={actions.createEvent}
+            onUpdateEvent={actions.updateEvent}
+            onDeleteEvent={actions.deleteEvent}
+            onUpdateCommunity={actions.updateCommunity}
+            onUpdatePage={actions.updatePage}
+            onUpdateLiveStream={actions.updateLiveStream}
             onLoadView={loadView}
           />
         ) : null}

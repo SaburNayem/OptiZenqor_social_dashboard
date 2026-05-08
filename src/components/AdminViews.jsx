@@ -58,6 +58,7 @@ export function DashboardView({
   setSettingsDraft,
   onUpdateUser,
   onModerateContent,
+  onModerateComment,
   onUpdateReport,
   onSaveSettings,
   onRevokeAdminSession,
@@ -69,6 +70,18 @@ export function DashboardView({
   onRunNotificationCampaignAction,
   onUpdateSupportTicket,
   onUpdateNotificationDevice,
+  onCreateMarketplaceItem,
+  onUpdateMarketplaceItem,
+  onDeleteMarketplaceItem,
+  onCreateJob,
+  onUpdateJob,
+  onDeleteJob,
+  onCreateEvent,
+  onUpdateEvent,
+  onDeleteEvent,
+  onUpdateCommunity,
+  onUpdatePage,
+  onUpdateLiveStream,
   onLoadView,
 }) {
   const data = payload?.data ?? {}
@@ -134,26 +147,52 @@ export function DashboardView({
     )
   }
 
-  if (viewId === 'content') {
+  if (viewId === 'content' || viewId === 'posts' || viewId === 'stories' || viewId === 'reels') {
     const items = extractItems(payload).map((item) => ({
       ...item,
-      targetType: item.targetType ?? data.targetType ?? 'post',
+      targetType:
+        item.targetType ??
+        data.targetType ??
+        (viewId === 'posts' ? 'post' : viewId === 'stories' ? 'story' : viewId === 'reels' ? 'reel' : 'post'),
     }))
+    const title =
+      viewId === 'posts'
+        ? 'Posts'
+        : viewId === 'stories'
+          ? 'Stories'
+          : viewId === 'reels'
+            ? 'Reels'
+            : 'Content Moderation'
+    const copy =
+      viewId === 'content'
+        ? 'Filter the live queue by content type and status, then review or remove items.'
+        : `Review live ${title.toLowerCase()} from the backend and apply moderation actions directly.`
+    const targetTypeDefault =
+      viewId === 'posts' ? 'post' : viewId === 'stories' ? 'story' : viewId === 'reels' ? 'reel' : filters.targetType ?? ''
 
     return (
       <article className="panel">
         <div className="panel-header">
           <div>
-            <h3>Content Moderation</h3>
-            <p className="panel-copy">Filter the live queue by content type and status, then review or remove items.</p>
+            <h3>{title}</h3>
+            <p className="panel-copy">{copy}</p>
           </div>
           <FilterForm
             fields={[
               { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search caption, text, title' },
-              { name: 'targetType', type: 'select', defaultValue: filters.targetType ?? '', options: ['', 'post', 'reel', 'story'] },
+              ...(viewId === 'content'
+                ? [{ name: 'targetType', type: 'select', defaultValue: targetTypeDefault, options: ['', 'post', 'reel', 'story'] }]
+                : []),
               { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'Visible', 'Under review', 'Removed'] },
             ]}
-            onSubmit={(query) => onLoadView('content', { page: 1, limit: 20, ...query })}
+            onSubmit={(query) =>
+              onLoadView(viewId, {
+                page: 1,
+                limit: 20,
+                ...(viewId === 'content' ? {} : { targetType: targetTypeDefault }),
+                ...query,
+              })
+            }
           />
         </div>
         <Table
@@ -169,6 +208,46 @@ export function DashboardView({
                 Review
               </button>
               <button type="button" onClick={() => onModerateContent(item, { remove: true, note: 'Removed by admin' })}>
+                Remove
+              </button>
+            </div>,
+          ])}
+        />
+        <PaginationMeta payload={payload} />
+      </article>
+    )
+  }
+
+  if (viewId === 'comments') {
+    const items = extractItems(payload)
+    return (
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Comments</h3>
+            <p className="panel-copy">Review live post comments, flag reported items, and remove abusive content through protected admin APIs.</p>
+          </div>
+          <FilterForm
+            fields={[
+              { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search comment, author, post id' },
+              { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'visible', 'reported'] },
+            ]}
+            onSubmit={(query) => onLoadView('comments', { page: 1, limit: 20, ...query })}
+          />
+        </div>
+        <Table
+          columns={['Author', 'Status', 'Message', 'Post', 'Created', 'Actions']}
+          rows={items.map((item) => [
+            item.authorName ?? item.authorUsername ?? 'Unknown',
+            <StatusBadge value={item.status} key={`${item.id}-status`} />,
+            item.message,
+            item.postId,
+            formatDate(item.createdAt),
+            <div className="action-row" key={item.id}>
+              <button type="button" onClick={() => onModerateComment(item.id, { reported: !item.isReported })}>
+                {item.isReported ? 'Unflag' : 'Flag'}
+              </button>
+              <button type="button" onClick={() => onModerateComment(item.id, { remove: true, note: 'Removed by admin' })}>
                 Remove
               </button>
             </div>,
@@ -223,27 +302,48 @@ export function DashboardView({
   }
 
   if (viewId === 'marketplace') {
-    return <MarketplaceOperationsView payload={payload} />
+    return (
+      <MarketplaceOperationsView
+        payload={payload}
+        onCreateMarketplaceItem={onCreateMarketplaceItem}
+        onUpdateMarketplaceItem={onUpdateMarketplaceItem}
+        onDeleteMarketplaceItem={onDeleteMarketplaceItem}
+      />
+    )
   }
 
   if (viewId === 'jobs') {
-    return <JobsOperationsView payload={payload} />
+    return (
+      <JobsOperationsView
+        payload={payload}
+        onCreateJob={onCreateJob}
+        onUpdateJob={onUpdateJob}
+        onDeleteJob={onDeleteJob}
+      />
+    )
   }
 
   if (viewId === 'events') {
-    return <EventsOperationsView payload={payload} />
+    return (
+      <EventsOperationsView
+        payload={payload}
+        onCreateEvent={onCreateEvent}
+        onUpdateEvent={onUpdateEvent}
+        onDeleteEvent={onDeleteEvent}
+      />
+    )
   }
 
   if (viewId === 'communities') {
-    return <CommunitiesOperationsView payload={payload} />
+    return <CommunitiesOperationsView payload={payload} onUpdateCommunity={onUpdateCommunity} />
   }
 
   if (viewId === 'pages') {
-    return <PagesOperationsView payload={payload} />
+    return <PagesOperationsView payload={payload} onUpdatePage={onUpdatePage} />
   }
 
   if (viewId === 'liveStreams') {
-    return <LiveStreamsOperationsView payload={payload} />
+    return <LiveStreamsOperationsView payload={payload} onUpdateLiveStream={onUpdateLiveStream} />
   }
 
   if (viewId === 'revenue') {

@@ -72,7 +72,26 @@ export function useAdminDashboard() {
       body: JSON.stringify(patch),
     })
     setGlobalNotice('Content moderation applied successfully.')
-    await loadView('content')
+    const refreshViewId =
+      item.targetType === 'post'
+        ? 'posts'
+        : item.targetType === 'story'
+          ? 'stories'
+          : item.targetType === 'reel'
+            ? 'reels'
+            : activeItem.id === 'content'
+              ? 'content'
+              : activeItem.id
+    await loadView(refreshViewId)
+  }, [activeItem.id, apiRequest, loadView])
+
+  const moderateComment = useCallback(async (commentId, patch) => {
+    await apiRequest(`/admin/comments/${commentId}/moderation`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Comment moderation applied successfully.')
+    await loadView('comments')
   }, [apiRequest, loadView])
 
   const updateReport = useCallback(async (reportId, patch) => {
@@ -178,6 +197,111 @@ export function useAdminDashboard() {
     await loadView('notificationDevices')
   }, [apiRequest, loadView])
 
+  const createMarketplaceItem = useCallback(async (patch) => {
+    await apiRequest('/admin/marketplace', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Marketplace item created successfully.')
+    await loadView('marketplace')
+  }, [apiRequest, loadView])
+
+  const updateMarketplaceItem = useCallback(async (itemId, patch) => {
+    await apiRequest(`/admin/marketplace/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Marketplace item updated successfully.')
+    await loadView('marketplace')
+  }, [apiRequest, loadView])
+
+  const deleteMarketplaceItem = useCallback(async (itemId) => {
+    await apiRequest(`/admin/marketplace/${itemId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Marketplace item deleted successfully.')
+    await loadView('marketplace')
+  }, [apiRequest, loadView])
+
+  const createJob = useCallback(async (patch) => {
+    await apiRequest('/admin/jobs', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Job created successfully.')
+    await loadView('jobs')
+  }, [apiRequest, loadView])
+
+  const updateJob = useCallback(async (jobId, patch) => {
+    await apiRequest(`/admin/jobs/${jobId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Job updated successfully.')
+    await loadView('jobs')
+  }, [apiRequest, loadView])
+
+  const deleteJob = useCallback(async (jobId) => {
+    await apiRequest(`/admin/jobs/${jobId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Job deleted successfully.')
+    await loadView('jobs')
+  }, [apiRequest, loadView])
+
+  const createEvent = useCallback(async (patch) => {
+    await apiRequest('/admin/events', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Event created successfully.')
+    await loadView('events')
+  }, [apiRequest, loadView])
+
+  const updateEvent = useCallback(async (eventId, patch) => {
+    await apiRequest(`/admin/events/${eventId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Event updated successfully.')
+    await loadView('events')
+  }, [apiRequest, loadView])
+
+  const deleteEvent = useCallback(async (eventId) => {
+    await apiRequest(`/admin/events/${eventId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Event deleted successfully.')
+    await loadView('events')
+  }, [apiRequest, loadView])
+
+  const updateCommunity = useCallback(async (communityId, patch) => {
+    await apiRequest(`/admin/communities/${communityId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Community updated successfully.')
+    await loadView('communities')
+  }, [apiRequest, loadView])
+
+  const updatePage = useCallback(async (pageId, patch) => {
+    await apiRequest(`/admin/pages/${pageId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Page updated successfully.')
+    await loadView('pages')
+  }, [apiRequest, loadView])
+
+  const updateLiveStream = useCallback(async (streamId, patch) => {
+    await apiRequest(`/admin/live-streams/${streamId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Live stream updated successfully.')
+    await loadView('liveStreams')
+  }, [apiRequest, loadView])
+
   return {
     activeItem,
     activeView,
@@ -192,6 +316,7 @@ export function useAdminDashboard() {
     actions: {
       updateUser,
       moderateContent,
+      moderateComment,
       updateReport,
       saveSettings,
       revokeAdminSession,
@@ -203,6 +328,18 @@ export function useAdminDashboard() {
       runNotificationCampaignAction,
       updateSupportTicket,
       updateNotificationDevice,
+      createMarketplaceItem,
+      updateMarketplaceItem,
+      deleteMarketplaceItem,
+      createJob,
+      updateJob,
+      deleteJob,
+      createEvent,
+      updateEvent,
+      deleteEvent,
+      updateCommunity,
+      updatePage,
+      updateLiveStream,
     },
   }
 }
