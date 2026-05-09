@@ -75,8 +75,11 @@ export function AdminWorkspacePage() {
             onCreateNotificationCampaign={actions.createNotificationCampaign}
             onUpdateNotificationCampaign={actions.updateNotificationCampaign}
             onRunNotificationCampaignAction={actions.runNotificationCampaignAction}
+            onDeleteNotificationCampaign={actions.deleteNotificationCampaign}
             onUpdateSupportTicket={actions.updateSupportTicket}
             onUpdateNotificationDevice={actions.updateNotificationDevice}
+            onDeleteNotificationDevice={actions.deleteNotificationDevice}
+            onUpdateWalletSubscription={actions.updateWalletSubscription}
             onCreateMarketplaceItem={actions.createMarketplaceItem}
             onUpdateMarketplaceItem={actions.updateMarketplaceItem}
             onDeleteMarketplaceItem={actions.deleteMarketplaceItem}

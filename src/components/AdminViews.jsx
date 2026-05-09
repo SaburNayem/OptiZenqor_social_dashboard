@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { extractItems, extractPagination } from '../services/apiClient'
+import { extractItems } from '../services/apiClient'
+import { DataList, FilterForm, PaginationMeta, StatusBadge, Table } from './common/AdminPrimitives'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
 import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
@@ -8,6 +9,14 @@ import { EventsOperationsView } from '../pages/admin/events/EventsOperationsView
 import { CommunitiesOperationsView } from '../pages/admin/communities/CommunitiesOperationsView'
 import { PagesOperationsView } from '../pages/admin/pages/PagesOperationsView'
 import { LiveStreamsOperationsView } from '../pages/admin/live-streams/LiveStreamsOperationsView'
+import {
+  RevenueSnapshotView,
+  SubscriptionsOperationsView,
+  WalletActivityView,
+  WalletSubscriptionOperationsView,
+} from '../pages/admin/finance/FinanceOperationsViews'
+import { AuditOperationsView } from '../pages/admin/audit/AuditOperationsView'
+import { AnalyticsOperationsView, RoleAccessView } from '../pages/admin/insights/AdminInsightsViews'
 
 function formatNumber(value) {
   if (value == null || value === '') {
@@ -68,8 +77,11 @@ export function DashboardView({
   onCreateNotificationCampaign,
   onUpdateNotificationCampaign,
   onRunNotificationCampaignAction,
+  onDeleteNotificationCampaign,
   onUpdateSupportTicket,
   onUpdateNotificationDevice,
+  onDeleteNotificationDevice,
+  onUpdateWalletSubscription,
   onCreateMarketplaceItem,
   onUpdateMarketplaceItem,
   onDeleteMarketplaceItem,
@@ -93,6 +105,10 @@ export function DashboardView({
   const data = payload?.data ?? {}
   const filters = resolveFilters(payload)
   const [selectedNotificationDeviceId, setSelectedNotificationDeviceId] = useState(null)
+  const [selectedWalletSubscriptionId, setSelectedWalletSubscriptionId] = useState(null)
+  const [selectedWalletId, setSelectedWalletId] = useState(null)
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(null)
+  const [selectedAuditId, setSelectedAuditId] = useState(null)
   const [premiumPlanDraft, setPremiumPlanDraft] = useState({
     code: '',
     name: '',
@@ -374,95 +390,50 @@ export function DashboardView({
   }
 
   if (viewId === 'revenue') {
-    return (
-      <section className="stack">
-        <article className="panel">
-          <h3>Revenue Snapshot</h3>
-          <DataList
-            items={[
-              ['Total revenue', data.totalRevenue],
-              ['Completed transactions', data.completedTransactions],
-              ['Active subscriptions', data.activeSubscriptions],
-              ['Plans', data.plans?.length ?? 0],
-            ]}
-          />
-        </article>
-        <article className="panel">
-          <h3>Recent Transactions</h3>
-          <Table
-            columns={['ID', 'Amount', 'Status', 'Created']}
-            rows={(data.recentTransactions ?? []).map((item) => [
-              item.id,
-              formatNumber(item.amount),
-              <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              formatDate(item.createdAt),
-            ])}
-          />
-        </article>
-      </section>
-    )
+    return <RevenueSnapshotView data={data} formatDate={formatDate} formatNumber={formatNumber} />
   }
 
   if (viewId === 'walletSubscriptions') {
-    const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Wallet & Subscription Activity</h3>
-        <Table
-          columns={['Type', 'Label', 'User', 'Amount', 'Status', 'Created']}
-          rows={items.map((item) => [
-            item.kind,
-            item.label,
-            item.userName ?? item.userId ?? 'N/A',
-            item.amount == null ? 'N/A' : formatNumber(item.amount),
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            formatDate(item.createdAt),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <WalletSubscriptionOperationsView
+        payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
+        selectedWalletSubscriptionId={selectedWalletSubscriptionId}
+        setSelectedWalletSubscriptionId={setSelectedWalletSubscriptionId}
+        onUpdateWalletSubscription={onUpdateWalletSubscription}
+        formatDate={formatDate}
+        formatNumber={formatNumber}
+      />
     )
   }
 
   if (viewId === 'wallet') {
-    const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Wallet Activity</h3>
-        <Table
-          columns={['User', 'Type', 'Amount', 'Currency', 'Status', 'Created']}
-          rows={items.map((item) => [
-            item.userName ?? item.userId ?? 'N/A',
-            item.type,
-            formatNumber(item.amount),
-            item.currency ?? 'BDT',
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            formatDate(item.createdAt),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <WalletActivityView
+        payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
+        selectedWalletId={selectedWalletId}
+        setSelectedWalletId={setSelectedWalletId}
+        formatDate={formatDate}
+        formatNumber={formatNumber}
+      />
     )
   }
 
   if (viewId === 'subscriptions') {
-    const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Subscriptions</h3>
-        <Table
-          columns={['User', 'Plan', 'Provider', 'Status', 'Auto Renew', 'Period End']}
-          rows={items.map((item) => [
-            item.userName ?? item.userId ?? 'N/A',
-            item.planName ?? item.planCode ?? 'N/A',
-            item.provider,
-            <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.autoRenew ? 'Yes' : 'No',
-            formatDate(item.currentPeriodEnd),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <SubscriptionsOperationsView
+        payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
+        selectedSubscriptionId={selectedSubscriptionId}
+        setSelectedSubscriptionId={setSelectedSubscriptionId}
+        onUpdateWalletSubscription={onUpdateWalletSubscription}
+        formatDate={formatDate}
+        formatNumber={formatNumber}
+      />
     )
   }
 
@@ -571,93 +542,18 @@ export function DashboardView({
   }
 
   if (viewId === 'analytics') {
-    const kpis = data.kpis ?? {}
-    const snapshots = Array.isArray(data.snapshots) ? data.snapshots : []
-    const leaderboards = Array.isArray(data.leaderboards) ? data.leaderboards : []
-    const exportJobs = Array.isArray(data.exportJobs) ? data.exportJobs : []
-
     return (
-      <section className="stack">
-        <article className="panel">
-          <h3>Analytics Pipeline</h3>
-          <p className="panel-copy">Database-backed KPI rollups and analytics pipeline state exposed from the admin backend.</p>
-          <DataList
-            items={[
-              ['User growth', kpis.userGrowth ?? 'N/A'],
-              ['Content output', kpis.contentOutput ?? 'N/A'],
-              ['Moderation load', kpis.moderationLoad ?? 'N/A'],
-              ['Revenue', kpis.revenue ?? 'N/A'],
-              ['Events RSVP', kpis.eventsRsvp ?? 'N/A'],
-            ]}
-          />
-        </article>
-
-        <article className="panel">
-          <h3>Snapshots</h3>
-          <Table
-            columns={['Label', 'Value', 'Timestamp']}
-            rows={snapshots.map((item) => [
-              item.label ?? item.metric ?? item.id ?? 'Snapshot',
-              formatCell(item.value ?? item.total ?? item.score),
-              formatDate(item.createdAt ?? item.timestamp),
-            ])}
-          />
-        </article>
-
-        <article className="panel">
-          <h3>Leaderboards</h3>
-          <Table
-            columns={['Title', 'Primary', 'Secondary']}
-            rows={leaderboards.map((item) => [
-              item.title ?? item.name ?? item.id ?? 'Entry',
-              formatCell(item.primaryValue ?? item.value ?? item.score),
-              formatCell(item.secondaryValue ?? item.subtitle ?? item.status),
-            ])}
-          />
-        </article>
-
-        <article className="panel">
-          <h3>Export Jobs</h3>
-          <Table
-            columns={['Job', 'Status', 'Created']}
-            rows={exportJobs.map((item) => [
-              item.name ?? item.id ?? 'Export job',
-              <StatusBadge value={item.status ?? 'queued'} key={`${item.id ?? item.name}-status`} />,
-              formatDate(item.createdAt),
-            ])}
-          />
-        </article>
-      </section>
+      <AnalyticsOperationsView
+        data={data}
+        formatCell={formatCell}
+        formatDate={formatDate}
+        formatNumber={formatNumber}
+      />
     )
   }
 
   if (viewId === 'rbac') {
-    const roles = Array.isArray(data.roles) ? data.roles : []
-    const moduleScopes = data.moduleScopes && typeof data.moduleScopes === 'object' ? data.moduleScopes : {}
-
-    return (
-      <section className="stack">
-        <article className="panel">
-          <h3>Admin Roles</h3>
-          <p className="panel-copy">Live role matrix from the backend permission system.</p>
-          <Table
-            columns={['Role']}
-            rows={roles.map((role) => [String(role)])}
-          />
-        </article>
-
-        <article className="panel">
-          <h3>Module Scopes</h3>
-          <Table
-            columns={['Module', 'Permissions']}
-            rows={Object.entries(moduleScopes).map(([moduleName, permissions]) => [
-              moduleName,
-              Array.isArray(permissions) ? permissions.join(', ') : formatCell(permissions),
-            ])}
-          />
-        </article>
-      </section>
-    )
+    return <RoleAccessView data={data} formatCell={formatCell} />
   }
 
   if (viewId === 'notifications') {
@@ -691,6 +587,9 @@ export function DashboardView({
                 </button>
                 <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'cancel')} disabled={item.status === 'cancelled'}>
                   Cancel
+                </button>
+                <button type="button" onClick={() => onDeleteNotificationCampaign?.(item.id)}>
+                  Delete
                 </button>
               </div>,
             ])}
@@ -846,6 +745,9 @@ export function DashboardView({
                 <button type="button" onClick={() => onUpdateNotificationDevice(item.id, { isActive: item.status !== 'active' })}>
                   {item.status === 'active' ? 'Deactivate' : 'Activate'}
                 </button>
+                <button type="button" onClick={() => onDeleteNotificationDevice?.(item.id)}>
+                  Delete
+                </button>
               </div>,
             ])}
           />
@@ -927,21 +829,17 @@ export function DashboardView({
   }
 
   if (viewId === 'audit') {
-    const items = extractItems(payload)
     return (
-      <article className="panel">
-        <h3>Audit Trail</h3>
-        <Table
-          columns={['Action', 'Entity', 'Actor', 'Created']}
-          rows={items.map((item) => [
-            item.action,
-            `${item.entityType}${item.entityId ? `:${item.entityId}` : ''}`,
-            item.actorName ?? 'N/A',
-            formatDate(item.createdAt),
-          ])}
-        />
-        <PaginationMeta payload={payload} />
-      </article>
+      <AuditOperationsView
+        payload={payload}
+        filters={filters}
+        selectedAuditId={selectedAuditId}
+        setSelectedAuditId={setSelectedAuditId}
+        onLoadView={onLoadView}
+        formatDate={formatDate}
+        formatCell={formatCell}
+        formatNumber={formatNumber}
+      />
     )
   }
 
@@ -966,118 +864,7 @@ export function DashboardView({
         columns={columns}
         rows={items.map((item) => columns.map((column) => formatCell(item[column])))}
       />
-      <PaginationMeta payload={payload} />
+      <PaginationMeta payload={payload} formatNumber={formatNumber} />
     </article>
   )
-}
-
-function FilterForm({ fields, onSubmit }) {
-  return (
-    <form
-      className="filters-bar"
-      onSubmit={(event) => {
-        event.preventDefault()
-        const formData = new FormData(event.currentTarget)
-        const query = Object.fromEntries(
-          fields.map((field) => [field.name, String(formData.get(field.name) ?? '').trim()]),
-        )
-        onSubmit(query)
-      }}
-    >
-      {fields.map((field) => {
-        if (field.type === 'select') {
-          return (
-            <select key={field.name} name={field.name} defaultValue={field.defaultValue}>
-              <option value="">All {field.name}</option>
-              {field.options.filter(Boolean).map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          )
-        }
-
-        return (
-          <input
-            key={field.name}
-            name={field.name}
-            type={field.type}
-            defaultValue={field.defaultValue}
-            placeholder={field.placeholder}
-          />
-        )
-      })}
-      <button type="submit">Apply</button>
-    </form>
-  )
-}
-
-function PaginationMeta({ payload }) {
-  const pagination = extractPagination(payload)
-  if (!pagination) {
-    return null
-  }
-
-  return (
-    <p className="pagination-meta">
-      Page {pagination.page} of {pagination.totalPages} | {formatNumber(pagination.total)} total items
-    </p>
-  )
-}
-
-export function DataList({ items }) {
-  return (
-    <dl className="data-list">
-      {items.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{formatNumber(value)}</dd>
-        </div>
-      ))}
-    </dl>
-  )
-}
-
-export function Table({ columns, rows }) {
-  if (!rows.length) {
-    return <div className="empty-panel">The API returned no data for this view.</div>
-  }
-
-  return (
-    <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={`row-${rowIndex}`}>
-              {row.map((cell, cellIndex) => (
-                <td key={`cell-${rowIndex}-${cellIndex}`}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-export function StatusBadge({ value }) {
-  const normalized = String(value ?? 'unknown').toLowerCase()
-  const tone =
-    normalized.includes('resolved') || normalized.includes('active') || normalized.includes('approved')
-      ? 'good'
-      : normalized.includes('review') || normalized.includes('pending')
-        ? 'warn'
-        : normalized.includes('blocked') || normalized.includes('removed') || normalized.includes('rejected')
-          ? 'bad'
-          : 'neutral'
-
-  return <span className={`status-badge ${tone}`}>{String(value ?? 'N/A')}</span>
 }

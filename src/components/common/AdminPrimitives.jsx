@@ -1,6 +1,14 @@
 import { extractPagination } from '../../services/apiClient'
 
-export function PaginationMeta({ payload, formatNumber }) {
+function defaultFormatNumber(value) {
+  if (value == null || value === '') {
+    return 'N/A'
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toLocaleString() : String(value)
+}
+
+export function PaginationMeta({ payload, formatNumber = defaultFormatNumber }) {
   const pagination = extractPagination(payload)
   if (!pagination) {
     return null
@@ -84,7 +92,7 @@ export function EmptyState({ title, description }) {
   )
 }
 
-export function DataList({ items, formatNumber }) {
+export function DataList({ items, formatNumber = defaultFormatNumber }) {
   return (
     <dl className="data-list">
       {items.map(([label, value]) => (
@@ -138,6 +146,48 @@ export function StatusBadge({ value }) {
           : 'neutral'
 
   return <span className={`status-badge ${tone}`}>{String(value ?? 'N/A')}</span>
+}
+
+export function FilterForm({ fields, onSubmit }) {
+  return (
+    <form
+      className="filters-bar"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const formData = new FormData(event.currentTarget)
+        const query = Object.fromEntries(
+          fields.map((field) => [field.name, String(formData.get(field.name) ?? '').trim()]),
+        )
+        onSubmit(query)
+      }}
+    >
+      {fields.map((field) => {
+        if (field.type === 'select') {
+          return (
+            <select key={field.name} name={field.name} defaultValue={field.defaultValue}>
+              <option value="">All {field.name}</option>
+              {field.options.filter(Boolean).map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          )
+        }
+
+        return (
+          <input
+            key={field.name}
+            name={field.name}
+            type={field.type}
+            defaultValue={field.defaultValue}
+            placeholder={field.placeholder}
+          />
+        )
+      })}
+      <button type="submit">Apply</button>
+    </form>
+  )
 }
 
 function escapeCsvValue(value) {

@@ -179,6 +179,14 @@ export function useAdminDashboard() {
     await loadView('notifications')
   }, [apiRequest, loadView])
 
+  const deleteNotificationCampaign = useCallback(async (campaignId) => {
+    await apiRequest(`/admin/notification-campaigns/${campaignId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Notification campaign deleted successfully.')
+    await loadView('notifications')
+  }, [apiRequest, loadView])
+
   const updateSupportTicket = useCallback(async (ticketId, patch) => {
     await apiRequest(`/admin/support-operations/${ticketId}`, {
       method: 'PATCH',
@@ -195,6 +203,24 @@ export function useAdminDashboard() {
     })
     setGlobalNotice('Notification device updated successfully.')
     await loadView('notificationDevices')
+  }, [apiRequest, loadView])
+
+  const deleteNotificationDevice = useCallback(async (deviceId) => {
+    await apiRequest(`/admin/notification-devices/${deviceId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Notification device deleted successfully.')
+    await loadView('notificationDevices')
+  }, [apiRequest, loadView])
+
+  const updateWalletSubscription = useCallback(async (recordId, patch) => {
+    await apiRequest(`/admin/wallet-subscriptions/${recordId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Wallet or subscription record updated successfully.')
+    await loadView('walletSubscriptions')
+    await loadView('subscriptions')
   }, [apiRequest, loadView])
 
   const createMarketplaceItem = useCallback(async (patch) => {
@@ -377,8 +403,11 @@ export function useAdminDashboard() {
       createNotificationCampaign,
       updateNotificationCampaign,
       runNotificationCampaignAction,
+      deleteNotificationCampaign,
       updateSupportTicket,
       updateNotificationDevice,
+      deleteNotificationDevice,
+      updateWalletSubscription,
       createMarketplaceItem,
       updateMarketplaceItem,
       deleteMarketplaceItem,
