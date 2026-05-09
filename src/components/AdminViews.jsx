@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { extractItems } from '../services/apiClient'
-import { DataList, FilterForm, PaginationMeta, StatusBadge, Table } from './common/AdminPrimitives'
+import { FilterForm, PaginationMeta, StatusBadge, Table } from './common/AdminPrimitives'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
 import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
@@ -17,6 +17,8 @@ import {
 } from '../pages/admin/finance/FinanceOperationsViews'
 import { AuditOperationsView } from '../pages/admin/audit/AuditOperationsView'
 import { AnalyticsOperationsView, RoleAccessView } from '../pages/admin/insights/AdminInsightsViews'
+import { NotificationCampaignsView, PremiumPlansView } from '../pages/admin/premium/PremiumAndNotificationsViews'
+import { AdminSessionsView, NotificationDevicesView } from '../pages/admin/devices/AdminDevicesViews'
 
 function formatNumber(value) {
   if (value == null || value === '') {
@@ -438,106 +440,18 @@ export function DashboardView({
   }
 
   if (viewId === 'premiumPlans') {
-    const items = extractItems(payload)
     return (
-      <section className="stack">
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <h3>Premium Plans</h3>
-              <p className="panel-copy">Manage the live plan catalog, including activation and deletion.</p>
-            </div>
-            <FilterForm
-              fields={[
-                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search plan code or name' },
-                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'active', 'inactive'] },
-              ]}
-              onSubmit={(query) => onLoadView('premiumPlans', { page: 1, limit: 20, ...query })}
-            />
-          </div>
-          <Table
-            columns={['Name', 'Code', 'Price', 'Billing', 'Status', 'Actions']}
-            rows={items.map((item) => [
-              item.name,
-              item.code,
-              `${formatNumber(item.price)} ${item.currency ?? ''}`.trim(),
-              item.billingInterval ?? 'monthly',
-              <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              <div className="action-row" key={item.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdatePremiumPlan(item.id, {
-                      isActive: !(item.isActive === true || item.status === 'active'),
-                    })
-                  }
-                >
-                  {item.isActive === true || item.status === 'active' ? 'Deactivate' : 'Activate'}
-                </button>
-                <button type="button" onClick={() => onDeletePremiumPlan(item.id)}>
-                  Delete
-                </button>
-              </div>,
-            ])}
-          />
-          <PaginationMeta payload={payload} />
-        </article>
-
-        <article className="panel">
-          <h3>Create Premium Plan</h3>
-          <form
-            className="inline-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              onCreatePremiumPlan({
-                code: premiumPlanDraft.code.trim(),
-                name: premiumPlanDraft.name.trim(),
-                price: Number(premiumPlanDraft.price),
-                billingInterval: premiumPlanDraft.billingInterval,
-              })
-              setPremiumPlanDraft({
-                code: '',
-                name: '',
-                price: '',
-                billingInterval: 'monthly',
-              })
-            }}
-          >
-            <input
-              value={premiumPlanDraft.code}
-              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, code: event.target.value }))}
-              placeholder="PLAN_CODE"
-            />
-            <input
-              value={premiumPlanDraft.name}
-              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Plan name"
-            />
-            <input
-              value={premiumPlanDraft.price}
-              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, price: event.target.value }))}
-              placeholder="Price"
-              type="number"
-              min="0"
-              step="0.01"
-            />
-            <select
-              value={premiumPlanDraft.billingInterval}
-              onChange={(event) => setPremiumPlanDraft((current) => ({ ...current, billingInterval: event.target.value }))}
-            >
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-            <button
-              type="submit"
-              disabled={!premiumPlanDraft.code.trim() || !premiumPlanDraft.name.trim() || !premiumPlanDraft.price}
-            >
-              Create plan
-            </button>
-          </form>
-        </article>
-      </section>
+      <PremiumPlansView
+        payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
+        onUpdatePremiumPlan={onUpdatePremiumPlan}
+        onDeletePremiumPlan={onDeletePremiumPlan}
+        onCreatePremiumPlan={onCreatePremiumPlan}
+        premiumPlanDraft={premiumPlanDraft}
+        setPremiumPlanDraft={setPremiumPlanDraft}
+        formatNumber={formatNumber}
+      />
     )
   }
 
@@ -557,275 +471,41 @@ export function DashboardView({
   }
 
   if (viewId === 'notifications') {
-    const items = extractItems(payload)
     return (
-      <section className="stack">
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <h3>Notification Campaigns</h3>
-              <p className="panel-copy">Review scheduled outreach and create new admin campaigns against the live backend.</p>
-            </div>
-            <FilterForm
-              fields={[
-                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search campaign or audience' },
-                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'scheduled', 'draft', 'sent'] },
-              ]}
-              onSubmit={(query) => onLoadView('notifications', { page: 1, limit: 20, ...query })}
-            />
-          </div>
-          <Table
-            columns={['Name', 'Audience', 'Status', 'Schedule', 'Actions']}
-            rows={items.map((item) => [
-              item.name ?? item.title ?? item.id,
-              item.audience ?? item.segmentId ?? 'N/A',
-              <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              item.schedule ?? item.createdAt ?? 'N/A',
-              <div className="action-row" key={item.id}>
-                <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'send')} disabled={item.status === 'sent'}>
-                  Send
-                </button>
-                <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'cancel')} disabled={item.status === 'cancelled'}>
-                  Cancel
-                </button>
-                <button type="button" onClick={() => onDeleteNotificationCampaign?.(item.id)}>
-                  Delete
-                </button>
-              </div>,
-            ])}
-          />
-          <PaginationMeta payload={payload} />
-        </article>
-
-        <article className="panel">
-          <h3>Update Notification Campaign</h3>
-          <div className="stack">
-            {items.map((item) => {
-              const draft = campaignEditDrafts[item.id] ?? {
-                name: item.name ?? '',
-                audience: item.audience ?? 'all_users',
-                schedule: item.schedule ?? '',
-              }
-
-              return (
-                <form
-                  key={`campaign-edit-${item.id}`}
-                  className="inline-form"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    onUpdateNotificationCampaign(item.id, {
-                      name: draft.name.trim(),
-                      audience: draft.audience,
-                      schedule: draft.schedule.trim(),
-                    })
-                  }}
-                >
-                  <input
-                    value={draft.name}
-                    onChange={(event) =>
-                      setCampaignEditDrafts((current) => ({
-                        ...current,
-                        [item.id]: { ...draft, name: event.target.value },
-                      }))
-                    }
-                    placeholder="Campaign name"
-                  />
-                  <select
-                    value={draft.audience}
-                    onChange={(event) =>
-                      setCampaignEditDrafts((current) => ({
-                        ...current,
-                        [item.id]: { ...draft, audience: event.target.value },
-                      }))
-                    }
-                  >
-                    <option value="all_users">All users</option>
-                    <option value="verified_users">Verified users</option>
-                    <option value="premium">Premium subscribers</option>
-                    <option value="creators">Creators</option>
-                  </select>
-                  <input
-                    value={draft.schedule}
-                    onChange={(event) =>
-                      setCampaignEditDrafts((current) => ({
-                        ...current,
-                        [item.id]: { ...draft, schedule: event.target.value },
-                      }))
-                    }
-                    placeholder="Schedule timestamp"
-                  />
-                  <button type="submit">Update</button>
-                </form>
-              )
-            })}
-          </div>
-        </article>
-
-        <article className="panel">
-          <h3>Create Notification Campaign</h3>
-          <form
-            className="inline-form"
-            onSubmit={(event) => {
-              event.preventDefault()
-              onCreateNotificationCampaign({
-                name: campaignDraft.name.trim(),
-                audience: campaignDraft.audience,
-                schedule: campaignDraft.schedule.trim(),
-              })
-              setCampaignDraft({
-                name: '',
-                audience: 'all_users',
-                schedule: '',
-              })
-            }}
-          >
-            <input
-              value={campaignDraft.name}
-              onChange={(event) => setCampaignDraft((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Campaign name"
-            />
-            <select
-              value={campaignDraft.audience}
-              onChange={(event) => setCampaignDraft((current) => ({ ...current, audience: event.target.value }))}
-            >
-              <option value="all_users">All users</option>
-              <option value="verified_users">Verified users</option>
-              <option value="premium">Premium subscribers</option>
-              <option value="creators">Creators</option>
-            </select>
-            <input
-              value={campaignDraft.schedule}
-              onChange={(event) => setCampaignDraft((current) => ({ ...current, schedule: event.target.value }))}
-              placeholder="Schedule timestamp"
-            />
-            <button type="submit" disabled={!campaignDraft.name.trim() || !campaignDraft.schedule.trim()}>
-              Create campaign
-            </button>
-          </form>
-        </article>
-      </section>
+      <NotificationCampaignsView
+        payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
+        onRunNotificationCampaignAction={onRunNotificationCampaignAction}
+        onDeleteNotificationCampaign={onDeleteNotificationCampaign}
+        onUpdateNotificationCampaign={onUpdateNotificationCampaign}
+        onCreateNotificationCampaign={onCreateNotificationCampaign}
+        campaignDraft={campaignDraft}
+        setCampaignDraft={setCampaignDraft}
+        campaignEditDrafts={campaignEditDrafts}
+        setCampaignEditDrafts={setCampaignEditDrafts}
+      />
     )
   }
 
   if (viewId === 'notificationDevices') {
-    const items = extractItems(payload)
-    const resolvedSelectedDeviceId =
-      items.some((item) => item.id === selectedNotificationDeviceId)
-        ? selectedNotificationDeviceId
-        : (items[0]?.id ?? null)
-    const selectedDevice = items.find((item) => item.id === resolvedSelectedDeviceId) ?? null
-
     return (
-      <section className="stack">
-        <article className="panel">
-          <div className="panel-header">
-            <div>
-              <h3>Notification Devices</h3>
-              <p className="panel-copy">Review registered push endpoints and deactivate stale or risky devices.</p>
-            </div>
-            <FilterForm
-              fields={[
-                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search token, user, device' },
-                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'active', 'inactive'] },
-              ]}
-              onSubmit={(query) => onLoadView('notificationDevices', { page: 1, limit: 20, ...query })}
-            />
-          </div>
-          <Table
-            columns={['User', 'Platform', 'Device', 'Status', 'Last Seen', 'Actions']}
-            rows={items.map((item) => [
-              <button type="button" className="link-button" key={`${item.id}-select`} onClick={() => setSelectedNotificationDeviceId(item.id)}>
-                {item.userName ?? item.userId ?? 'N/A'}
-              </button>,
-              item.platform,
-              item.deviceLabel ?? 'N/A',
-              <StatusBadge value={item.status} key={`${item.id}-status`} />,
-              formatDate(item.lastSeenAt),
-              <div className="action-row" key={item.id}>
-                <button type="button" onClick={() => onUpdateNotificationDevice(item.id, { isActive: item.status !== 'active' })}>
-                  {item.status === 'active' ? 'Deactivate' : 'Activate'}
-                </button>
-                <button type="button" onClick={() => onDeleteNotificationDevice?.(item.id)}>
-                  Delete
-                </button>
-              </div>,
-            ])}
-          />
-          <PaginationMeta payload={payload} />
-        </article>
-
-        <div className="detail-grid">
-          <article className="panel">
-            <h3>Device Detail</h3>
-            {selectedDevice ? (
-              <dl className="detail-list">
-                <div>
-                  <dt>User</dt>
-                  <dd>{selectedDevice.userName ?? selectedDevice.userId ?? 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Platform</dt>
-                  <dd>{selectedDevice.platform ?? 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Device Label</dt>
-                  <dd>{selectedDevice.deviceLabel ?? 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Status</dt>
-                  <dd>{selectedDevice.status ?? 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Token</dt>
-                  <dd>{selectedDevice.token ?? 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Last Seen</dt>
-                  <dd>{formatDate(selectedDevice.lastSeenAt)}</dd>
-                </div>
-              </dl>
-            ) : (
-              <div className="empty-panel">Select a device to inspect its registered push endpoint.</div>
-            )}
-          </article>
-
-          <article className="panel">
-            <h3>Status Summary</h3>
-            <DataList
-              items={[
-                ['Visible devices', data.pagination?.total ?? items.length],
-                ['Active', items.filter((item) => item.status === 'active').length],
-                ['Inactive', items.filter((item) => item.status === 'inactive').length],
-              ]}
-            />
-          </article>
-        </div>
-      </section>
+      <NotificationDevicesView
+        payload={payload}
+        filters={filters}
+        data={data}
+        onLoadView={onLoadView}
+        selectedNotificationDeviceId={selectedNotificationDeviceId}
+        setSelectedNotificationDeviceId={setSelectedNotificationDeviceId}
+        onUpdateNotificationDevice={onUpdateNotificationDevice}
+        onDeleteNotificationDevice={onDeleteNotificationDevice}
+        formatDate={formatDate}
+      />
     )
   }
 
   if (viewId === 'adminSessions') {
-    const items = extractItems(payload)
-    return (
-      <article className="panel">
-        <h3>Admin Sessions</h3>
-        <Table
-          columns={['Admin', 'Role', 'Device', 'Status', 'Last Active', 'Actions']}
-          rows={items.map((item) => [
-            item.name ?? item.email ?? item.adminId ?? 'N/A',
-            item.role ?? 'N/A',
-            item.device ?? 'N/A',
-            <StatusBadge value={item.current ? 'active' : 'revoked'} key={`${item.id}-status`} />,
-            formatDate(item.lastActive),
-            <div className="action-row" key={item.id}>
-              <button type="button" onClick={() => onRevokeAdminSession(item.id)} disabled={!item.current}>
-                Revoke
-              </button>
-            </div>,
-          ])}
-        />
-      </article>
-    )
+    return <AdminSessionsView payload={payload} onRevokeAdminSession={onRevokeAdminSession} formatDate={formatDate} />
   }
 
   if (viewId === 'audit') {

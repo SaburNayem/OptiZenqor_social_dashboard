@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExportButton, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
+import { ExportButton, FilterForm, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
 import { useAdminSession } from '../../../hooks/useAdminSession'
 import { extractCollection } from '../../../services/apiClient'
 
@@ -15,44 +15,6 @@ function formatDate(value) {
 function formatNumber(value) {
   const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
-}
-
-function FilterForm({ fields, onSubmit }) {
-  return (
-    <form
-      className="filters-bar"
-      onSubmit={(event) => {
-        event.preventDefault()
-        const formData = new FormData(event.currentTarget)
-        const query = Object.fromEntries(
-          fields.map((field) => [field.name, String(formData.get(field.name) ?? '').trim()]),
-        )
-        onSubmit(query)
-      }}
-    >
-      {fields.map((field) => (
-        field.type === 'select' ? (
-          <select key={field.name} name={field.name} defaultValue={field.defaultValue}>
-            <option value="">All {field.name}</option>
-            {field.options.filter(Boolean).map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <input
-            key={field.name}
-            name={field.name}
-            type={field.type}
-            defaultValue={field.defaultValue}
-            placeholder={field.placeholder}
-          />
-        )
-      ))}
-      <button type="submit">Apply</button>
-    </form>
-  )
 }
 
 function HistoryTable({ title, columns, rows, emptyTitle, emptyDescription }) {
