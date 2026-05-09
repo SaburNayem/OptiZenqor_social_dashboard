@@ -19,6 +19,8 @@ export const navigationItems = [
   { id: 'subscriptions', label: 'Subscriptions', kind: 'admin', endpoint: '/admin/subscriptions' },
   { id: 'walletSubscriptions', label: 'Wallet & Subs', kind: 'admin', endpoint: '/admin/wallet-subscriptions' },
   { id: 'premiumPlans', label: 'Premium Plans', kind: 'admin', endpoint: '/admin/premium-plans' },
+  { id: 'analytics', label: 'Analytics', kind: 'admin', endpoint: '/admin/analytics-pipeline' },
+  { id: 'rbac', label: 'RBAC', kind: 'admin', endpoint: '/admin/rbac' },
   { id: 'notifications', label: 'Notifications', kind: 'admin', endpoint: '/admin/notification-campaigns' },
   { id: 'notificationDevices', label: 'Notification Devices', kind: 'admin', endpoint: '/admin/notification-devices' },
   { id: 'adminSessions', label: 'Admin Sessions', kind: 'admin', endpoint: '/admin/auth/sessions' },

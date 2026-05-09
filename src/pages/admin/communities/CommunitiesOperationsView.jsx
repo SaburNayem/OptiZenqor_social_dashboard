@@ -7,10 +7,18 @@ function formatNumber(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
-export function CommunitiesOperationsView({ payload, onUpdateCommunity }) {
+export function CommunitiesOperationsView({ payload, onCreateCommunity, onUpdateCommunity, onDeleteCommunity }) {
   const items = extractItems(payload)
   const [selectedCommunityId, setSelectedCommunityId] = useState(null)
   const [editDraft, setEditDraft] = useState(null)
+  const [createDraft, setCreateDraft] = useState({
+    ownerId: '',
+    name: '',
+    description: '',
+    privacy: 'public',
+    category: '',
+    location: '',
+  })
   const selectedCommunity =
     items.find((item) => item.id === selectedCommunityId) ??
     items[0] ??
@@ -86,6 +94,12 @@ export function CommunitiesOperationsView({ payload, onUpdateCommunity }) {
                 <div className="action-row">
                   <button
                     type="button"
+                    onClick={() => onDeleteCommunity?.(selectedCommunity.id)}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
                     onClick={() =>
                       onUpdateCommunity?.(selectedCommunity.id, {
                         status: selectedCommunity.status === 'archived' ? 'active' : 'archived',
@@ -139,6 +153,46 @@ export function CommunitiesOperationsView({ payload, onUpdateCommunity }) {
         ) : (
           <div className="empty-panel">Select a community to update its live record.</div>
         )}
+      </article>
+
+      <article className="panel">
+        <h3>Create Community</h3>
+        <form
+          className="inline-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onCreateCommunity?.({
+              ownerId: createDraft.ownerId.trim(),
+              name: createDraft.name.trim(),
+              description: createDraft.description.trim(),
+              privacy: createDraft.privacy,
+              category: createDraft.category.trim(),
+              location: createDraft.location.trim(),
+            })
+            setCreateDraft({
+              ownerId: '',
+              name: '',
+              description: '',
+              privacy: 'public',
+              category: '',
+              location: '',
+            })
+          }}
+        >
+          <input value={createDraft.ownerId} onChange={(event) => setCreateDraft((current) => ({ ...current, ownerId: event.target.value }))} placeholder="Owner ID" />
+          <input value={createDraft.name} onChange={(event) => setCreateDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Name" />
+          <input value={createDraft.category} onChange={(event) => setCreateDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+          <input value={createDraft.location} onChange={(event) => setCreateDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+          <select value={createDraft.privacy} onChange={(event) => setCreateDraft((current) => ({ ...current, privacy: event.target.value }))}>
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+            <option value="hidden">Hidden</option>
+          </select>
+          <input value={createDraft.description} onChange={(event) => setCreateDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
+          <button type="submit" disabled={!createDraft.ownerId.trim() || !createDraft.name.trim() || !createDraft.description.trim()}>
+            Create community
+          </button>
+        </form>
       </article>
     </section>
   )

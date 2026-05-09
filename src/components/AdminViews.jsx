@@ -79,9 +79,15 @@ export function DashboardView({
   onCreateEvent,
   onUpdateEvent,
   onDeleteEvent,
+  onCreateCommunity,
   onUpdateCommunity,
+  onDeleteCommunity,
+  onCreatePage,
   onUpdatePage,
+  onDeletePage,
+  onCreateLiveStream,
   onUpdateLiveStream,
+  onDeleteLiveStream,
   onLoadView,
 }) {
   const data = payload?.data ?? {}
@@ -335,15 +341,36 @@ export function DashboardView({
   }
 
   if (viewId === 'communities') {
-    return <CommunitiesOperationsView payload={payload} onUpdateCommunity={onUpdateCommunity} />
+    return (
+      <CommunitiesOperationsView
+        payload={payload}
+        onCreateCommunity={onCreateCommunity}
+        onUpdateCommunity={onUpdateCommunity}
+        onDeleteCommunity={onDeleteCommunity}
+      />
+    )
   }
 
   if (viewId === 'pages') {
-    return <PagesOperationsView payload={payload} onUpdatePage={onUpdatePage} />
+    return (
+      <PagesOperationsView
+        payload={payload}
+        onCreatePage={onCreatePage}
+        onUpdatePage={onUpdatePage}
+        onDeletePage={onDeletePage}
+      />
+    )
   }
 
   if (viewId === 'liveStreams') {
-    return <LiveStreamsOperationsView payload={payload} onUpdateLiveStream={onUpdateLiveStream} />
+    return (
+      <LiveStreamsOperationsView
+        payload={payload}
+        onCreateLiveStream={onCreateLiveStream}
+        onUpdateLiveStream={onUpdateLiveStream}
+        onDeleteLiveStream={onDeleteLiveStream}
+      />
+    )
   }
 
   if (viewId === 'revenue') {
@@ -538,6 +565,96 @@ export function DashboardView({
               Create plan
             </button>
           </form>
+        </article>
+      </section>
+    )
+  }
+
+  if (viewId === 'analytics') {
+    const kpis = data.kpis ?? {}
+    const snapshots = Array.isArray(data.snapshots) ? data.snapshots : []
+    const leaderboards = Array.isArray(data.leaderboards) ? data.leaderboards : []
+    const exportJobs = Array.isArray(data.exportJobs) ? data.exportJobs : []
+
+    return (
+      <section className="stack">
+        <article className="panel">
+          <h3>Analytics Pipeline</h3>
+          <p className="panel-copy">Database-backed KPI rollups and analytics pipeline state exposed from the admin backend.</p>
+          <DataList
+            items={[
+              ['User growth', kpis.userGrowth ?? 'N/A'],
+              ['Content output', kpis.contentOutput ?? 'N/A'],
+              ['Moderation load', kpis.moderationLoad ?? 'N/A'],
+              ['Revenue', kpis.revenue ?? 'N/A'],
+              ['Events RSVP', kpis.eventsRsvp ?? 'N/A'],
+            ]}
+          />
+        </article>
+
+        <article className="panel">
+          <h3>Snapshots</h3>
+          <Table
+            columns={['Label', 'Value', 'Timestamp']}
+            rows={snapshots.map((item) => [
+              item.label ?? item.metric ?? item.id ?? 'Snapshot',
+              formatCell(item.value ?? item.total ?? item.score),
+              formatDate(item.createdAt ?? item.timestamp),
+            ])}
+          />
+        </article>
+
+        <article className="panel">
+          <h3>Leaderboards</h3>
+          <Table
+            columns={['Title', 'Primary', 'Secondary']}
+            rows={leaderboards.map((item) => [
+              item.title ?? item.name ?? item.id ?? 'Entry',
+              formatCell(item.primaryValue ?? item.value ?? item.score),
+              formatCell(item.secondaryValue ?? item.subtitle ?? item.status),
+            ])}
+          />
+        </article>
+
+        <article className="panel">
+          <h3>Export Jobs</h3>
+          <Table
+            columns={['Job', 'Status', 'Created']}
+            rows={exportJobs.map((item) => [
+              item.name ?? item.id ?? 'Export job',
+              <StatusBadge value={item.status ?? 'queued'} key={`${item.id ?? item.name}-status`} />,
+              formatDate(item.createdAt),
+            ])}
+          />
+        </article>
+      </section>
+    )
+  }
+
+  if (viewId === 'rbac') {
+    const roles = Array.isArray(data.roles) ? data.roles : []
+    const moduleScopes = data.moduleScopes && typeof data.moduleScopes === 'object' ? data.moduleScopes : {}
+
+    return (
+      <section className="stack">
+        <article className="panel">
+          <h3>Admin Roles</h3>
+          <p className="panel-copy">Live role matrix from the backend permission system.</p>
+          <Table
+            columns={['Role']}
+            rows={roles.map((role) => [String(role)])}
+          />
+        </article>
+
+        <article className="panel">
+          <h3>Module Scopes</h3>
+          <Table
+            columns={['Module', 'Permissions']}
+            rows={Object.entries(moduleScopes).map(([moduleName, permissions]) => [
+              moduleName,
+              Array.isArray(permissions) ? permissions.join(', ') : formatCell(permissions),
+            ])}
+          />
         </article>
       </section>
     )

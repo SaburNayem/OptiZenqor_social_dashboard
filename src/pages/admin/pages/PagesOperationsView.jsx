@@ -7,10 +7,18 @@ function formatNumber(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
-export function PagesOperationsView({ payload, onUpdatePage }) {
+export function PagesOperationsView({ payload, onCreatePage, onUpdatePage, onDeletePage }) {
   const items = extractItems(payload)
   const [selectedPageId, setSelectedPageId] = useState(null)
   const [editDraft, setEditDraft] = useState(null)
+  const [createDraft, setCreateDraft] = useState({
+    ownerId: '',
+    name: '',
+    about: '',
+    category: '',
+    location: '',
+    contactLabel: '',
+  })
   const selectedPage =
     items.find((item) => item.id === selectedPageId) ??
     items[0] ??
@@ -79,6 +87,16 @@ export function PagesOperationsView({ payload, onUpdatePage }) {
               <dt>About</dt>
               <dd>{selectedPage.about ?? 'N/A'}</dd>
             </div>
+            <div>
+              <dt>Actions</dt>
+              <dd>
+                <div className="action-row">
+                  <button type="button" onClick={() => onDeletePage?.(selectedPage.id)}>
+                    Delete
+                  </button>
+                </div>
+              </dd>
+            </div>
           </dl>
         ) : (
           <div className="empty-panel">Select a page to inspect its live detail payload.</div>
@@ -111,6 +129,42 @@ export function PagesOperationsView({ payload, onUpdatePage }) {
         ) : (
           <div className="empty-panel">Select a page to update its live record.</div>
         )}
+      </article>
+
+      <article className="panel">
+        <h3>Create Page</h3>
+        <form
+          className="inline-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onCreatePage?.({
+              ownerId: createDraft.ownerId.trim(),
+              name: createDraft.name.trim(),
+              about: createDraft.about.trim(),
+              category: createDraft.category.trim(),
+              location: createDraft.location.trim(),
+              contactLabel: createDraft.contactLabel.trim(),
+            })
+            setCreateDraft({
+              ownerId: '',
+              name: '',
+              about: '',
+              category: '',
+              location: '',
+              contactLabel: '',
+            })
+          }}
+        >
+          <input value={createDraft.ownerId} onChange={(event) => setCreateDraft((current) => ({ ...current, ownerId: event.target.value }))} placeholder="Owner ID" />
+          <input value={createDraft.name} onChange={(event) => setCreateDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Name" />
+          <input value={createDraft.category} onChange={(event) => setCreateDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+          <input value={createDraft.location} onChange={(event) => setCreateDraft((current) => ({ ...current, location: event.target.value }))} placeholder="Location" />
+          <input value={createDraft.contactLabel} onChange={(event) => setCreateDraft((current) => ({ ...current, contactLabel: event.target.value }))} placeholder="Contact label" />
+          <input value={createDraft.about} onChange={(event) => setCreateDraft((current) => ({ ...current, about: event.target.value }))} placeholder="About" />
+          <button type="submit" disabled={!createDraft.ownerId.trim() || !createDraft.name.trim() || !createDraft.category.trim()}>
+            Create page
+          </button>
+        </form>
       </article>
     </section>
   )

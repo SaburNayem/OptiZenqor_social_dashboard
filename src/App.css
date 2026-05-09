@@ -80,6 +80,7 @@
 
 .login-form input,
 .settings-form textarea,
+.support-detail-form textarea,
 .inline-form input,
 .inline-form select,
 .filters-bar input,
@@ -94,6 +95,7 @@
 .logout-button,
 .action-row button,
 .settings-form button,
+.support-detail-form button,
 .inline-form button,
 .nav-item,
 .filters-bar button,
@@ -104,6 +106,7 @@
 
 .login-form button,
 .settings-form button,
+.support-detail-form button,
 .inline-form button {
   padding: 14px 18px;
   color: var(--color-button-text-dark);
@@ -254,6 +257,11 @@
   align-items: center;
 }
 
+.support-toolbar {
+  display: grid;
+  gap: 12px;
+}
+
 .inline-form {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
@@ -271,6 +279,10 @@
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
   gap: 16px;
+}
+
+.support-detail-grid {
+  grid-template-columns: 1.15fr 0.85fr;
 }
 
 .detail-list {
@@ -295,6 +307,56 @@
 .detail-list dd {
   margin: 0;
   color: var(--color-text-highlight);
+}
+
+.support-detail-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.support-detail-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.support-detail-form span {
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+
+.support-detail-form input,
+.support-detail-form select,
+.support-detail-form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.support-detail-form textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.support-form-span {
+  grid-column: 1 / -1;
+}
+
+.support-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
+.support-form-actions button[type='button'] {
+  color: var(--color-text-primary);
+  background: var(--color-surface);
 }
 
 .link-button {
@@ -357,6 +419,20 @@
   padding: 10px;
   border-radius: 18px;
   background: var(--color-surface-soft);
+}
+
+@media (max-width: 1080px) {
+  .detail-grid,
+  .support-detail-grid,
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-form,
+  .support-detail-form,
+  .filters-bar {
+    grid-template-columns: 1fr;
+  }
 }
 
 .mini-bar-fill {

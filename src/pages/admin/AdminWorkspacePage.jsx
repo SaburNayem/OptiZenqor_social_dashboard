@@ -86,9 +86,15 @@ export function AdminWorkspacePage() {
             onCreateEvent={actions.createEvent}
             onUpdateEvent={actions.updateEvent}
             onDeleteEvent={actions.deleteEvent}
+            onCreateCommunity={actions.createCommunity}
             onUpdateCommunity={actions.updateCommunity}
+            onDeleteCommunity={actions.deleteCommunity}
+            onCreatePage={actions.createPage}
             onUpdatePage={actions.updatePage}
+            onDeletePage={actions.deletePage}
+            onCreateLiveStream={actions.createLiveStream}
             onUpdateLiveStream={actions.updateLiveStream}
+            onDeleteLiveStream={actions.deleteLiveStream}
             onLoadView={loadView}
           />
         ) : null}

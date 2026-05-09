@@ -284,6 +284,23 @@ export function useAdminDashboard() {
     await loadView('communities')
   }, [apiRequest, loadView])
 
+  const createCommunity = useCallback(async (patch) => {
+    await apiRequest('/admin/communities', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Community created successfully.')
+    await loadView('communities')
+  }, [apiRequest, loadView])
+
+  const deleteCommunity = useCallback(async (communityId) => {
+    await apiRequest(`/admin/communities/${communityId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Community deleted successfully.')
+    await loadView('communities')
+  }, [apiRequest, loadView])
+
   const updatePage = useCallback(async (pageId, patch) => {
     await apiRequest(`/admin/pages/${pageId}`, {
       method: 'PATCH',
@@ -293,12 +310,46 @@ export function useAdminDashboard() {
     await loadView('pages')
   }, [apiRequest, loadView])
 
+  const createPage = useCallback(async (patch) => {
+    await apiRequest('/admin/pages', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Page created successfully.')
+    await loadView('pages')
+  }, [apiRequest, loadView])
+
+  const deletePage = useCallback(async (pageId) => {
+    await apiRequest(`/admin/pages/${pageId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Page deleted successfully.')
+    await loadView('pages')
+  }, [apiRequest, loadView])
+
   const updateLiveStream = useCallback(async (streamId, patch) => {
     await apiRequest(`/admin/live-streams/${streamId}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
     })
     setGlobalNotice('Live stream updated successfully.')
+    await loadView('liveStreams')
+  }, [apiRequest, loadView])
+
+  const createLiveStream = useCallback(async (patch) => {
+    await apiRequest('/admin/live-streams', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Live stream created successfully.')
+    await loadView('liveStreams')
+  }, [apiRequest, loadView])
+
+  const deleteLiveStream = useCallback(async (streamId) => {
+    await apiRequest(`/admin/live-streams/${streamId}`, {
+      method: 'DELETE',
+    })
+    setGlobalNotice('Live stream deleted successfully.')
     await loadView('liveStreams')
   }, [apiRequest, loadView])
 
@@ -337,9 +388,15 @@ export function useAdminDashboard() {
       createEvent,
       updateEvent,
       deleteEvent,
+      createCommunity,
       updateCommunity,
+      deleteCommunity,
+      createPage,
       updatePage,
+      deletePage,
+      createLiveStream,
       updateLiveStream,
+      deleteLiveStream,
     },
   }
 }

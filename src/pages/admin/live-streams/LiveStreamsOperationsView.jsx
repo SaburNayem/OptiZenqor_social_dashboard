@@ -7,10 +7,20 @@ function formatNumber(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
-export function LiveStreamsOperationsView({ payload, onUpdateLiveStream }) {
+export function LiveStreamsOperationsView({ payload, onCreateLiveStream, onUpdateLiveStream, onDeleteLiveStream }) {
   const items = extractItems(payload)
   const [selectedStreamId, setSelectedStreamId] = useState(null)
   const [editDraft, setEditDraft] = useState(null)
+  const [createDraft, setCreateDraft] = useState({
+    hostId: '',
+    title: '',
+    description: '',
+    category: '',
+    audience: 'public',
+    status: 'scheduled',
+    commentsEnabled: true,
+    slowModeSeconds: '0',
+  })
   const selectedStream =
     items.find((item) => item.id === selectedStreamId) ??
     items[0] ??
@@ -85,6 +95,9 @@ export function LiveStreamsOperationsView({ payload, onUpdateLiveStream }) {
               <dt>Actions</dt>
               <dd>
                 <div className="action-row">
+                  <button type="button" onClick={() => onDeleteLiveStream?.(selectedStream.id)}>
+                    Delete
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
@@ -152,6 +165,64 @@ export function LiveStreamsOperationsView({ payload, onUpdateLiveStream }) {
         ) : (
           <div className="empty-panel">Select a live stream to update its live record.</div>
         )}
+      </article>
+
+      <article className="panel">
+        <h3>Create Live Stream</h3>
+        <form
+          className="inline-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onCreateLiveStream?.({
+              hostId: createDraft.hostId.trim(),
+              title: createDraft.title.trim(),
+              description: createDraft.description.trim(),
+              category: createDraft.category.trim(),
+              audience: createDraft.audience,
+              status: createDraft.status,
+              commentsEnabled: createDraft.commentsEnabled,
+              slowModeSeconds: Number(createDraft.slowModeSeconds),
+            })
+            setCreateDraft({
+              hostId: '',
+              title: '',
+              description: '',
+              category: '',
+              audience: 'public',
+              status: 'scheduled',
+              commentsEnabled: true,
+              slowModeSeconds: '0',
+            })
+          }}
+        >
+          <input value={createDraft.hostId} onChange={(event) => setCreateDraft((current) => ({ ...current, hostId: event.target.value }))} placeholder="Host ID" />
+          <input value={createDraft.title} onChange={(event) => setCreateDraft((current) => ({ ...current, title: event.target.value }))} placeholder="Title" />
+          <input value={createDraft.category} onChange={(event) => setCreateDraft((current) => ({ ...current, category: event.target.value }))} placeholder="Category" />
+          <select value={createDraft.status} onChange={(event) => setCreateDraft((current) => ({ ...current, status: event.target.value }))}>
+            <option value="scheduled">Scheduled</option>
+            <option value="live">Live</option>
+            <option value="ended">Ended</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <select value={createDraft.audience} onChange={(event) => setCreateDraft((current) => ({ ...current, audience: event.target.value }))}>
+            <option value="public">Public</option>
+            <option value="followers">Followers</option>
+            <option value="private">Private</option>
+          </select>
+          <input value={createDraft.slowModeSeconds} onChange={(event) => setCreateDraft((current) => ({ ...current, slowModeSeconds: event.target.value }))} placeholder="Slow mode seconds" type="number" min="0" />
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              checked={createDraft.commentsEnabled}
+              onChange={(event) => setCreateDraft((current) => ({ ...current, commentsEnabled: event.target.checked }))}
+            />
+            Comments enabled
+          </label>
+          <input value={createDraft.description} onChange={(event) => setCreateDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
+          <button type="submit" disabled={!createDraft.hostId.trim() || !createDraft.title.trim()}>
+            Create live stream
+          </button>
+        </form>
       </article>
     </section>
   )
