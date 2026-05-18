@@ -36,6 +36,7 @@ function HistoryTable({ title, columns, rows, emptyTitle, emptyDescription }) {
 export function SupportOperationsView({ payload, filters, onUpdateSupportTicket, onLoadView }) {
   const { apiRequest, session } = useAdminSession()
   const data = payload?.data ?? {}
+  const supportHelpConfig = data.supportHelpConfig ?? {}
   const tickets = extractCollection(payload, ['tickets', 'items', 'results'])
   const actions = data.actions ?? []
   const [selectedSupportTicketId, setSelectedSupportTicketId] = useState(null)
@@ -44,6 +45,14 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
   const [detailError, setDetailError] = useState('')
   const [detailNotice, setDetailNotice] = useState('')
   const [detailRefreshKey, setDetailRefreshKey] = useState(0)
+  const [configNotice, setConfigNotice] = useState('')
+  const [configDraft, setConfigDraft] = useState({
+    enabled: true,
+    showOnLogin: true,
+    allowImages: true,
+    headerText: 'Need help signing in?',
+    bodyText: 'Send a message with an optional screenshot and support will reply from the admin dashboard.',
+  })
   const [updateDraft, setUpdateDraft] = useState({
     status: 'open',
     priority: 'normal',
@@ -52,6 +61,24 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
     adminNote: '',
     replyMessage: '',
   })
+
+  useEffect(() => {
+    setConfigDraft({
+      enabled: supportHelpConfig.enabled !== false,
+      showOnLogin: supportHelpConfig.showOnLogin !== false,
+      allowImages: supportHelpConfig.allowImages !== false,
+      headerText: supportHelpConfig.headerText ?? 'Need help signing in?',
+      bodyText:
+        supportHelpConfig.bodyText ??
+        'Send a message with an optional screenshot and support will reply from the admin dashboard.',
+    })
+  }, [
+    supportHelpConfig.enabled,
+    supportHelpConfig.showOnLogin,
+    supportHelpConfig.allowImages,
+    supportHelpConfig.headerText,
+    supportHelpConfig.bodyText,
+  ])
 
   const resolvedSelectedTicketId =
     tickets.some((ticket) => ticket.id === selectedSupportTicketId)
@@ -129,6 +156,21 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
     [ticketDetail],
   )
 
+  async function handleConfigSubmit(event) {
+    event.preventDefault()
+    setConfigNotice('')
+    try {
+      await apiRequest('/admin/support-help/config', {
+        method: 'PATCH',
+        body: JSON.stringify(configDraft),
+      })
+      setConfigNotice('Login help message settings saved.')
+      await onLoadView('support', filters)
+    } catch (error) {
+      setConfigNotice(error instanceof Error ? error.message : 'Unable to save login help settings.')
+    }
+  }
+
   async function handleQuickUpdate(ticketId, patch, successMessage) {
     try {
       await onUpdateSupportTicket(ticketId, patch)
@@ -170,6 +212,67 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
 
   return (
     <section className="stack">
+      <article className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Login Help Message</h3>
+            <p className="panel-copy">Control the support entry shown on the app login screen and the header copy users see before sending a ticket.</p>
+          </div>
+        </div>
+        {configNotice ? <p className="notice-banner">{configNotice}</p> : null}
+        <form className="support-detail-form" onSubmit={handleConfigSubmit}>
+          <label>
+            <span>Header text</span>
+            <input
+              value={configDraft.headerText}
+              onChange={(event) => setConfigDraft((current) => ({ ...current, headerText: event.target.value }))}
+              placeholder="Need help signing in?"
+            />
+          </label>
+          <label className="support-form-span">
+            <span>Message text</span>
+            <textarea
+              value={configDraft.bodyText}
+              onChange={(event) => setConfigDraft((current) => ({ ...current, bodyText: event.target.value }))}
+              rows={3}
+            />
+          </label>
+          <label>
+            <span>Enabled</span>
+            <select
+              value={configDraft.enabled ? 'yes' : 'no'}
+              onChange={(event) => setConfigDraft((current) => ({ ...current, enabled: event.target.value === 'yes' }))}
+            >
+              <option value="yes">show</option>
+              <option value="no">hide</option>
+            </select>
+          </label>
+          <label>
+            <span>Show on login</span>
+            <select
+              value={configDraft.showOnLogin ? 'yes' : 'no'}
+              onChange={(event) => setConfigDraft((current) => ({ ...current, showOnLogin: event.target.value === 'yes' }))}
+            >
+              <option value="yes">show</option>
+              <option value="no">hide</option>
+            </select>
+          </label>
+          <label>
+            <span>Image upload</span>
+            <select
+              value={configDraft.allowImages ? 'yes' : 'no'}
+              onChange={(event) => setConfigDraft((current) => ({ ...current, allowImages: event.target.value === 'yes' }))}
+            >
+              <option value="yes">allow</option>
+              <option value="no">disable</option>
+            </select>
+          </label>
+          <div className="support-form-actions">
+            <button type="submit">Save login help</button>
+          </div>
+        </form>
+      </article>
+
       <article className="panel">
         <div className="panel-header">
           <div>

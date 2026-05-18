@@ -1,6 +1,12 @@
 import { useState } from 'react'
 import { extractItems } from '../services/apiClient'
 import { FilterForm, PaginationMeta, StatusBadge, Table } from './common/AdminPrimitives'
+import {
+  adminAppControls,
+  appSettingsSections,
+  navigationItems,
+  postAdminControls,
+} from '../config/navigation'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
 import { MarketplaceOperationsView } from '../pages/admin/marketplace/MarketplaceOperationsView'
@@ -50,6 +56,25 @@ function formatCell(value) {
   return String(value)
 }
 
+function copyToClipboard(value) {
+  if (!value) {
+    return
+  }
+  if (typeof navigator !== 'undefined' && navigator?.clipboard?.writeText) {
+    void navigator.clipboard.writeText(String(value))
+  }
+}
+
+function showContentDetail(item) {
+  const preview = item.caption ?? item.text ?? item.title ?? 'No preview text'
+  window.alert([
+    `${item.targetType ?? 'content'} ${item.id}`,
+    `Status: ${item.status ?? 'N/A'}`,
+    '',
+    preview,
+  ].join('\n'))
+}
+
 function resolveColumns(items) {
   const first = items[0]
   if (!first || typeof first !== 'object') {
@@ -62,17 +87,206 @@ function resolveFilters(payload) {
   return payload?.data?.filters ?? {}
 }
 
+function resolveBooleanSetting(settings, key, defaultValue = true) {
+  const value = settings?.[key]
+  return typeof value === 'boolean' ? value : defaultValue
+}
+
+function buildTogglePatch(items, getKey, nextValue) {
+  return items.reduce((patch, item) => {
+    patch[getKey(item)] = nextValue
+    return patch
+  }, {})
+}
+
+function SettingsToggleSection({ title, description, items, onShowAll, onHideAll, onToggle }) {
+  return (
+    <section className="settings-group">
+      <div className="settings-group-header">
+        <div>
+          <h4>{title}</h4>
+          <p>{description}</p>
+        </div>
+        <div className="action-row">
+          <button type="button" onClick={onShowAll}>
+            Show all
+          </button>
+          <button type="button" onClick={onHideAll}>
+            Hide all
+          </button>
+        </div>
+      </div>
+
+      <div className="settings-toggle-grid">
+        {items.map((item) => (
+          <label key={item.key} className="toggle-card">
+            <div>
+              <strong>{item.label}</strong>
+              {item.description ? <p>{item.description}</p> : null}
+            </div>
+            <input
+              type="checkbox"
+              checked={item.enabled}
+              onChange={(event) => onToggle(item.key, event.target.checked)}
+            />
+          </label>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function AdminStaffView({
+  payload,
+  draft,
+  setDraft,
+  onCreateAdminStaff,
+  onUpdateAdminStaff,
+  onDeleteAdminStaff,
+  formatDate,
+}) {
+  const items = extractItems(payload)
+
+  const submitCreate = async (event) => {
+    event.preventDefault()
+    const nextDraft = {
+      name: draft.name.trim(),
+      email: draft.email.trim(),
+      password: draft.password,
+      role: draft.role,
+      isActive: draft.isActive,
+    }
+    await onCreateAdminStaff?.(nextDraft)
+    setDraft({
+      name: '',
+      email: '',
+      password: '',
+      role: 'admin',
+      isActive: true,
+    })
+  }
+
+  return (
+    <>
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Create Admin</h3>
+          </div>
+        </div>
+        <form className="filters-bar" onSubmit={(event) => void submitCreate(event)}>
+          <input
+            required
+            value={draft.name}
+            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Name"
+          />
+          <input
+            required
+            type="email"
+            value={draft.email}
+            onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+            placeholder="Email"
+          />
+          <input
+            required
+            minLength={8}
+            type="password"
+            value={draft.password}
+            onChange={(event) => setDraft((current) => ({ ...current, password: event.target.value }))}
+            placeholder="Password"
+          />
+          <select
+            value={draft.role}
+            onChange={(event) => setDraft((current) => ({ ...current, role: event.target.value }))}
+          >
+            <option value="admin">Admin</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+          <label className="inline-check">
+            <input
+              type="checkbox"
+              checked={draft.isActive}
+              onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.checked }))}
+            />
+            Active
+          </label>
+          <button type="submit">Create</button>
+        </form>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Admin Staff</h3>
+          </div>
+        </div>
+        <Table
+          columns={['Name', 'Email', 'Role', 'Status', 'App Access', 'Created', 'Actions']}
+          rows={items.map((item) => {
+            const role = String(item.role ?? '').toLowerCase()
+            const isSuperadmin = role === 'superadmin'
+            return [
+              item.name ?? 'N/A',
+              item.email ?? 'N/A',
+              <StatusBadge value={item.role ?? 'admin'} />,
+              <StatusBadge value={item.isActive ? 'active' : 'inactive'} />,
+              isSuperadmin ? 'Dashboard only' : 'Full app access',
+              formatDate(item.createdAt),
+              <div className="action-row" key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => onUpdateAdminStaff?.(item.id, { isActive: !item.isActive })}
+                >
+                  {item.isActive ? 'Deactivate' : 'Activate'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onUpdateAdminStaff?.(item.id, {
+                      role: isSuperadmin ? 'admin' : 'superadmin',
+                    })
+                  }
+                >
+                  {isSuperadmin ? 'Make Admin' : 'Dashboard Only'}
+                </button>
+                {!isSuperadmin ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Remove admin ${item.email ?? item.id}?`)) {
+                        onDeleteAdminStaff?.(item.id)
+                      }
+                    }}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>,
+            ]
+          })}
+        />
+        <PaginationMeta payload={payload} />
+      </section>
+    </>
+  )
+}
+
 export function DashboardView({
   viewId,
   payload,
   settingsDraft,
   setSettingsDraft,
+  operationalSettings,
   onUpdateUser,
   onModerateContent,
   onModerateComment,
-  onUpdateReport,
+  onOpenReportTarget,
   onSaveSettings,
   onRevokeAdminSession,
+  onCreateAdminStaff,
+  onUpdateAdminStaff,
+  onDeleteAdminStaff,
   onUpdatePremiumPlan,
   onCreatePremiumPlan,
   onDeletePremiumPlan,
@@ -123,6 +337,13 @@ export function DashboardView({
     schedule: '',
   })
   const [campaignEditDrafts, setCampaignEditDrafts] = useState({})
+  const [adminStaffDraft, setAdminStaffDraft] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'admin',
+    isActive: true,
+  })
 
   if (viewId === 'overview') {
     return <OverviewView data={data} />
@@ -130,6 +351,101 @@ export function DashboardView({
 
   if (viewId === 'users') {
     const items = extractItems(payload)
+    const resolveAdminDuration = (label) => {
+      const raw = window.prompt(`${label} hours`, '24')
+      if (raw == null) {
+        return null
+      }
+      const hours = Number(raw)
+      if (!Number.isFinite(hours) || hours <= 0) {
+        window.alert('Enter a valid number of hours.')
+        return null
+      }
+      return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString()
+    }
+    const resolveAdminReason = (label, fallback) => {
+      const reason = window.prompt(label, fallback)
+      if (reason == null) {
+        return null
+      }
+      const normalized = reason.trim()
+      if (!normalized) {
+        window.alert('Reason is required.')
+        return null
+      }
+      return normalized
+    }
+    const resolveRestrictionScope = () => {
+      const raw = window.prompt(
+        'Restrict which features? Use comma separated names like comments, posts, chat, live, marketplace, jobs.',
+        'comments, posts',
+      )
+      if (raw == null) {
+        return null
+      }
+      const scope = raw
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+      if (scope.length === 0) {
+        window.alert('Add at least one feature scope.')
+        return null
+      }
+      return scope
+    }
+    const enforcementSummary = (item) => {
+      const moderation = item.adminModeration ?? {}
+      const reason = moderation.reason || item.restrictionReason || ''
+      const scope = Array.isArray(item.restrictionScope) ? item.restrictionScope.join(', ') : ''
+      if (moderation.action === 'suspend' && moderation.active) {
+        return `Suspended until ${formatDate(item.suspendedUntil)}${reason ? ` - ${reason}` : ''}`
+      }
+      if (moderation.action === 'restrict' && moderation.active) {
+        return `Restricted ${scope || 'features'} until ${formatDate(item.restrictedUntil)}${reason ? ` - ${reason}` : ''}`
+      }
+      return item.blocked ? 'Blocked' : 'None'
+    }
+    const suspendUser = (item) => {
+      const suspendedUntil = resolveAdminDuration('Suspend account for')
+      if (!suspendedUntil) {
+        return
+      }
+      const reason = resolveAdminReason(
+        'Why is this account suspended? This appears only on the suspended login screen.',
+        'Account suspended by admin review',
+      )
+      if (!reason) {
+        return
+      }
+      onUpdateUser(item.id, {
+        enforcementAction: 'suspend',
+        suspendedUntil,
+        restrictionReason: reason,
+      })
+    }
+    const restrictUser = (item) => {
+      const restrictedUntil = resolveAdminDuration('Restrict account features for')
+      if (!restrictedUntil) {
+        return
+      }
+      const restrictionScope = resolveRestrictionScope()
+      if (!restrictionScope) {
+        return
+      }
+      const reason = resolveAdminReason(
+        'Why is this feature restriction being sent to the user notification inbox?',
+        'Feature access restricted by admin review',
+      )
+      if (!reason) {
+        return
+      }
+      onUpdateUser(item.id, {
+        enforcementAction: 'restrict',
+        restrictedUntil,
+        restrictionScope,
+        restrictionReason: reason,
+      })
+    }
     return (
       <section className="stack">
         <article className="panel">
@@ -142,25 +458,34 @@ export function DashboardView({
               fields={[
                 { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search name, username, email' },
                 { name: 'role', type: 'select', defaultValue: filters.role ?? '', options: ['', 'user', 'creator', 'business', 'seller', 'recruiter'] },
-                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'Active', 'Suspended', 'Under review'] },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'Active', 'Suspended', 'Restricted', 'Under review'] },
               ]}
               onSubmit={(query) => onLoadView('users', { page: 1, limit: 20, ...query })}
             />
           </div>
           <Table
-            columns={['Name', 'Role', 'Status', 'Verification', 'Blocked', 'Actions']}
+            columns={['Name', 'Role', 'Status', 'Verification', 'Limit', 'Actions']}
             rows={items.map((item) => [
               `${item.name} (${item.username})`,
               item.role,
               <StatusBadge value={item.status} key={`${item.id}-status`} />,
               <StatusBadge value={item.verification} key={`${item.id}-verification`} />,
-              item.blocked ? 'Yes' : 'No',
+              enforcementSummary(item),
               <div className="action-row" key={item.id}>
                 <button type="button" onClick={() => onUpdateUser(item.id, { blocked: !item.blocked })}>
                   {item.blocked ? 'Unblock' : 'Block'}
                 </button>
-                <button type="button" onClick={() => onUpdateUser(item.id, { status: 'Active' })}>
+                <button type="button" onClick={() => onUpdateUser(item.id, { status: 'Active', blocked: false, enforcementAction: 'clear' })}>
                   Activate
+                </button>
+                <button type="button" onClick={() => suspendUser(item)}>
+                  Suspend
+                </button>
+                <button type="button" onClick={() => restrictUser(item)}>
+                  Restrict
+                </button>
+                <button type="button" onClick={() => onUpdateUser(item.id, { enforcementAction: 'clear', status: 'Active', blocked: false })}>
+                  Clear limits
                 </button>
               </div>,
             ])}
@@ -228,8 +553,14 @@ export function DashboardView({
             item.caption ?? item.text ?? item.title ?? 'No preview text',
             formatDate(item.createdAt),
             <div className="action-row" key={item.id}>
+              <button type="button" onClick={() => showContentDetail(item)}>
+                View
+              </button>
               <button type="button" onClick={() => onModerateContent(item, { status: 'Under review' })}>
-                Review
+                Under review
+              </button>
+              <button type="button" onClick={() => onModerateContent(item, { status: 'Visible', note: 'Restored by admin' })}>
+                Restore
               </button>
               <button type="button" onClick={() => onModerateContent(item, { remove: true, note: 'Removed by admin' })}>
                 Remove
@@ -289,29 +620,35 @@ export function DashboardView({
         <div className="panel-header">
           <div>
             <h3>Reports Queue</h3>
-            <p className="panel-copy">Review incoming reports, move them into review, and close them from the same queue.</p>
+            <p className="panel-copy">Use reports to identify the target, then open the matching admin section to review, restore, restrict, or remove it.</p>
           </div>
           <FilterForm
             fields={[
               { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search reason, reporter, target' },
+              { name: 'targetType', type: 'select', defaultValue: filters.targetType ?? '', options: ['', 'user', 'post', 'reel', 'story', 'comment', 'marketplace', 'job'] },
               { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'submitted', 'reviewing', 'resolved', 'rejected'] },
             ]}
             onSubmit={(query) => onLoadView('reports', { page: 1, limit: 20, ...query })}
           />
         </div>
         <Table
-          columns={['Reason', 'Status', 'Reporter', 'Target', 'Actions']}
+          columns={['Type', 'Reason', 'Status', 'Reporter', 'Target ID', 'Where', 'Actions']}
           rows={items.map((item) => [
-            item.reason,
+            <StatusBadge value={item.targetType ?? item.targetEntityType ?? 'report'} key={`${item.id}-type`} />,
+            <div key={`${item.id}-reason`}>
+              <strong>{item.reason}</strong>
+              {item.details ? <small>{item.details}</small> : null}
+            </div>,
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.reporterName,
-            item.targetUserName ?? item.targetEntityId ?? 'N/A',
+            item.reporterName ?? item.reporterUserId ?? 'N/A',
+            item.targetId ?? item.targetEntityId ?? item.targetUserId ?? 'N/A',
+            item.actionLocation ?? 'Open the matching admin section and act there.',
             <div className="action-row" key={item.id}>
-              <button type="button" onClick={() => onUpdateReport(item.id, { status: 'reviewing', note: 'Taken into review' })}>
-                Review
+              <button type="button" onClick={() => onOpenReportTarget?.(item)} disabled={!item.targetId && !item.targetEntityId && !item.targetUserId}>
+                {item.targetActionLabel ?? 'Open target'}
               </button>
-              <button type="button" onClick={() => onUpdateReport(item.id, { status: 'resolved', note: 'Resolved from dashboard' })}>
-                Resolve
+              <button type="button" onClick={() => copyToClipboard(item.targetId ?? item.targetEntityId ?? item.targetUserId)}>
+                Copy ID
               </button>
             </div>,
           ])}
@@ -329,6 +666,8 @@ export function DashboardView({
     return (
       <MarketplaceOperationsView
         payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
         onCreateMarketplaceItem={onCreateMarketplaceItem}
         onUpdateMarketplaceItem={onUpdateMarketplaceItem}
         onDeleteMarketplaceItem={onDeleteMarketplaceItem}
@@ -340,6 +679,8 @@ export function DashboardView({
     return (
       <JobsOperationsView
         payload={payload}
+        filters={filters}
+        onLoadView={onLoadView}
         onCreateJob={onCreateJob}
         onUpdateJob={onUpdateJob}
         onDeleteJob={onDeleteJob}
@@ -470,6 +811,20 @@ export function DashboardView({
     return <RoleAccessView data={data} formatCell={formatCell} />
   }
 
+  if (viewId === 'adminStaff') {
+    return (
+      <AdminStaffView
+        payload={payload}
+        draft={adminStaffDraft}
+        setDraft={setAdminStaffDraft}
+        onCreateAdminStaff={onCreateAdminStaff}
+        onUpdateAdminStaff={onUpdateAdminStaff}
+        onDeleteAdminStaff={onDeleteAdminStaff}
+        formatDate={formatDate}
+      />
+    )
+  }
+
   if (viewId === 'notifications') {
     return (
       <NotificationCampaignsView
@@ -524,14 +879,113 @@ export function DashboardView({
   }
 
   if (viewId === 'settings') {
+    const drawerItems = navigationItems.map((item) => ({
+      key: `dashboard.navigation.${item.id}.visible`,
+      label: item.label,
+      description: 'Controls whether this section appears in the admin drawer.',
+      enabled: resolveBooleanSetting(operationalSettings, `dashboard.navigation.${item.id}.visible`, true),
+    }))
+
+    const settingsSectionItems = appSettingsSections.map((item) => ({
+      key: `app.settings.sections.${item.key}.visible`,
+      label: item.label,
+      description: 'Controls whether this section should be treated as visible in app settings.',
+      enabled: resolveBooleanSetting(operationalSettings, `app.settings.sections.${item.key}.visible`, true),
+    }))
+
+    const postControlItems = postAdminControls.map((item) => ({
+      ...item,
+      enabled: resolveBooleanSetting(
+        operationalSettings,
+        item.key,
+        item.key === 'admin.controls.posts.visible' ? true : false,
+      ),
+    }))
+
+    const adminAccessItems = adminAppControls.map((item) => ({
+      ...item,
+      enabled: resolveBooleanSetting(operationalSettings, item.key, false),
+    }))
+
     return (
-      <article className="panel">
-        <h3>Operational Settings</h3>
-        <form className="settings-form" onSubmit={onSaveSettings}>
-          <textarea value={settingsDraft} onChange={(event) => setSettingsDraft(event.target.value)} />
-          <button type="submit">Save settings</button>
-        </form>
-      </article>
+      <section className="stack">
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Operational Settings</h3>
+              <p className="panel-copy">
+                Turn dashboard sections on or off, control which app settings areas stay visible,
+                and define how much power admins have over posts and the rest of the app.
+              </p>
+            </div>
+          </div>
+
+          <SettingsToggleSection
+            title="Dashboard Drawer Visibility"
+            description="These switches control which sections appear in the admin sidebar drawer."
+            items={drawerItems}
+            onShowAll={() =>
+              onSaveSettings(buildTogglePatch(navigationItems, (item) => `dashboard.navigation.${item.id}.visible`, true))
+            }
+            onHideAll={() =>
+              onSaveSettings(buildTogglePatch(navigationItems, (item) => `dashboard.navigation.${item.id}.visible`, false))
+            }
+            onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
+          />
+
+          <SettingsToggleSection
+            title="App Settings Visibility"
+            description="Use the same visible or invisible control for end-user settings sections."
+            items={settingsSectionItems}
+            onShowAll={() =>
+              onSaveSettings(buildTogglePatch(appSettingsSections, (item) => `app.settings.sections.${item.key}.visible`, true))
+            }
+            onHideAll={() =>
+              onSaveSettings(buildTogglePatch(appSettingsSections, (item) => `app.settings.sections.${item.key}.visible`, false))
+            }
+            onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
+          />
+
+          <SettingsToggleSection
+            title="Post Section Controls"
+            description="These controls decide whether the dedicated posts section is visible and what post actions admins are allowed to perform."
+            items={postControlItems}
+            onShowAll={() => onSaveSettings(buildTogglePatch(postAdminControls, (item) => item.key, true))}
+            onHideAll={() => onSaveSettings(buildTogglePatch(postAdminControls, (item) => item.key, false))}
+            onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
+          />
+
+          <SettingsToggleSection
+            title="Admin App Access"
+            description="Turn on broad operational access so admins can manage all major app areas from the console."
+            items={adminAccessItems}
+            onShowAll={() => onSaveSettings(buildTogglePatch(adminAppControls, (item) => item.key, true))}
+            onHideAll={() => onSaveSettings(buildTogglePatch(adminAppControls, (item) => item.key, false))}
+            onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
+          />
+        </article>
+
+        <article className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Advanced JSON Settings</h3>
+              <p className="panel-copy">
+                Use this only when you want to edit raw operational keys directly.
+              </p>
+            </div>
+          </div>
+          <form
+            className="settings-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onSaveSettings(event)
+            }}
+          >
+            <textarea value={settingsDraft} onChange={(event) => setSettingsDraft(event.target.value)} />
+            <button type="submit">Save raw settings</button>
+          </form>
+        </article>
+      </section>
     )
   }
 

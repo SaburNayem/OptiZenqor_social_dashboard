@@ -6,6 +6,7 @@ import { useAdminSession } from '../../hooks/useAdminSession'
 export function AdminLoginPage() {
   const { login } = useAdminSession()
   const [loginState, setLoginState] = useState({ email: '', password: '', loading: false, error: '' })
+  const [resetState, setResetState] = useState({ loading: false, error: '', notice: '' })
 
   async function handleLogin(event) {
     event.preventDefault()
@@ -26,6 +27,67 @@ export function AdminLoginPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    const email = loginState.email.trim()
+
+    if (!email) {
+      setResetState({
+        loading: false,
+        error: 'Enter your admin email first so we can send a reset link.',
+        notice: '',
+      })
+      return
+    }
+
+    if (!API_BASE_URL) {
+      setResetState({
+        loading: false,
+        error: 'Password reset requires VITE_API_BASE_URL to be configured.',
+        notice: '',
+      })
+      return
+    }
+
+    setResetState({ loading: true, error: '', notice: '' })
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      let payload = {}
+      try {
+        payload = await response.json()
+      } catch {
+        payload = {}
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Password reset request failed.')
+      }
+
+      setResetState({
+        loading: false,
+        error: '',
+        notice: payload.message || 'If that admin account exists, a reset link has been sent.',
+      })
+    } catch (error) {
+      setResetState({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Password reset request failed.',
+        notice: '',
+      })
+    }
+  }
+
+  function clearResetFeedback() {
+    setResetState((current) =>
+      current.error || current.notice ? { ...current, error: '', notice: '' } : current,
+    )
+  }
+
   return (
     <main className="login-shell">
       <section className="login-panel">
@@ -44,8 +106,11 @@ export function AdminLoginPage() {
 
         <AdminLoginForm
           loginState={loginState}
+          resetState={resetState}
           setLoginState={setLoginState}
           onSubmit={handleLogin}
+          onPasswordReset={handlePasswordReset}
+          onClearResetFeedback={clearResetFeedback}
         />
       </section>
     </main>

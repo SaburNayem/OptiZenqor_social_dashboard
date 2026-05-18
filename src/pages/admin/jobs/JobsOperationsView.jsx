@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExportButton, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
+import { ExportButton, FilterForm, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
 import { extractItems } from '../../../services/apiClient'
 
 function formatNumber(value) {
@@ -7,7 +7,7 @@ function formatNumber(value) {
   return Number.isFinite(numeric) ? numeric.toLocaleString() : '0'
 }
 
-export function JobsOperationsView({ payload, onCreateJob, onUpdateJob, onDeleteJob }) {
+export function JobsOperationsView({ payload, filters = {}, onLoadView, onCreateJob, onUpdateJob, onDeleteJob }) {
   const items = extractItems(payload)
   const [selectedJobId, setSelectedJobId] = useState(null)
   const [createDraft, setCreateDraft] = useState({
@@ -46,7 +46,16 @@ export function JobsOperationsView({ payload, onCreateJob, onUpdateJob, onDelete
             <h3>Jobs Moderation</h3>
             <p className="panel-copy">Inspect live job inventory, recruiter ownership, and application volume from admin APIs.</p>
           </div>
-          <ExportButton filename="admin-jobs.csv" rows={items} />
+          <div className="action-row">
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search title, company, recruiter id, job id' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'draft', 'open', 'active', 'closed'] },
+              ]}
+              onSubmit={(query) => onLoadView?.('jobs', { page: 1, limit: 20, ...query })}
+            />
+            <ExportButton filename="admin-jobs.csv" rows={items} />
+          </div>
         </div>
         <Table
           columns={['Title', 'Company', 'Type', 'Status', 'Applications', 'Recruiter']}

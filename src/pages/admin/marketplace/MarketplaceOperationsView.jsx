@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExportButton, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
+import { ExportButton, FilterForm, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
 import { extractItems } from '../../../services/apiClient'
 
 function formatNumber(value) {
@@ -18,6 +18,8 @@ function formatDate(value) {
 
 export function MarketplaceOperationsView({
   payload,
+  filters = {},
+  onLoadView,
   onCreateMarketplaceItem,
   onUpdateMarketplaceItem,
   onDeleteMarketplaceItem,
@@ -30,6 +32,10 @@ export function MarketplaceOperationsView({
     description: '',
     price: '',
     category: '',
+    externalAppName: '',
+    externalAppLink: '',
+    playStoreUrl: '',
+    androidPackage: '',
     status: 'draft',
   })
   const selectedItem =
@@ -49,6 +55,10 @@ export function MarketplaceOperationsView({
             description: selectedItem.description ?? '',
             price: String(selectedItem.price ?? ''),
             category: selectedItem.category ?? '',
+            externalAppName: selectedItem.externalAppName ?? selectedItem.externalApp?.name ?? '',
+            externalAppLink: selectedItem.externalAppLink ?? selectedItem.externalApp?.appLink ?? '',
+            playStoreUrl: selectedItem.playStoreUrl ?? selectedItem.externalApp?.playStoreUrl ?? '',
+            androidPackage: selectedItem.androidPackage ?? selectedItem.externalApp?.androidPackage ?? '',
             status: selectedItem.status ?? 'draft',
           }
 
@@ -60,7 +70,16 @@ export function MarketplaceOperationsView({
             <h3>Marketplace Operations</h3>
             <p className="panel-copy">Review live listings with seller context, pricing, and moderation-ready detail.</p>
           </div>
-          <ExportButton filename="admin-marketplace.csv" rows={items} />
+          <div className="action-row">
+            <FilterForm
+              fields={[
+                { name: 'search', type: 'search', defaultValue: filters.search ?? '', placeholder: 'Search title, seller id, listing id' },
+                { name: 'status', type: 'select', defaultValue: filters.status ?? '', options: ['', 'draft', 'active', 'archived', 'sold'] },
+              ]}
+              onSubmit={(query) => onLoadView?.('marketplace', { page: 1, limit: 20, ...query })}
+            />
+            <ExportButton filename="admin-marketplace.csv" rows={items} />
+          </div>
         </div>
         <Table
           columns={['Title', 'Category', 'Price', 'Status', 'Seller', 'Created']}
@@ -103,6 +122,18 @@ export function MarketplaceOperationsView({
               <dd>{selectedItem.description ?? 'N/A'}</dd>
             </div>
             <div>
+              <dt>External app</dt>
+              <dd>{selectedItem.externalAppName || selectedItem.externalApp?.name || 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>App link</dt>
+              <dd>{selectedItem.externalAppLink || selectedItem.externalApp?.appLink || 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Play Store fallback</dt>
+              <dd>{selectedItem.playStoreUrl || selectedItem.externalApp?.playStoreUrl || 'N/A'}</dd>
+            </div>
+            <div>
               <dt>Actions</dt>
               <dd>
                 <div className="action-row">
@@ -143,6 +174,10 @@ export function MarketplaceOperationsView({
                 description: resolvedEditDraft.description.trim(),
                 price: Number(resolvedEditDraft.price),
                 category: resolvedEditDraft.category.trim(),
+                externalAppName: resolvedEditDraft.externalAppName.trim(),
+                externalAppLink: resolvedEditDraft.externalAppLink.trim(),
+                playStoreUrl: resolvedEditDraft.playStoreUrl.trim(),
+                androidPackage: resolvedEditDraft.androidPackage.trim(),
                 status: resolvedEditDraft.status,
               })
             }}
@@ -179,6 +214,26 @@ export function MarketplaceOperationsView({
               onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, description: event.target.value }))}
               placeholder="Description"
             />
+            <input
+              value={resolvedEditDraft.externalAppName}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, externalAppName: event.target.value }))}
+              placeholder="External app name"
+            />
+            <input
+              value={resolvedEditDraft.externalAppLink}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, externalAppLink: event.target.value }))}
+              placeholder="App link or deep link"
+            />
+            <input
+              value={resolvedEditDraft.playStoreUrl}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, playStoreUrl: event.target.value }))}
+              placeholder="Google Play URL"
+            />
+            <input
+              value={resolvedEditDraft.androidPackage}
+              onChange={(event) => setEditDraft((current) => ({ ...(current ?? resolvedEditDraft), id: selectedItem.id, androidPackage: event.target.value }))}
+              placeholder="Android package"
+            />
             <button type="submit">Save listing</button>
           </form>
         ) : (
@@ -198,6 +253,10 @@ export function MarketplaceOperationsView({
               description: createDraft.description.trim(),
               price: Number(createDraft.price),
               category: createDraft.category.trim(),
+              externalAppName: createDraft.externalAppName.trim(),
+              externalAppLink: createDraft.externalAppLink.trim(),
+              playStoreUrl: createDraft.playStoreUrl.trim(),
+              androidPackage: createDraft.androidPackage.trim(),
               status: createDraft.status,
             })
             setCreateDraft({
@@ -206,6 +265,10 @@ export function MarketplaceOperationsView({
               description: '',
               price: '',
               category: '',
+              externalAppName: '',
+              externalAppLink: '',
+              playStoreUrl: '',
+              androidPackage: '',
               status: 'draft',
             })
           }}
@@ -219,6 +282,10 @@ export function MarketplaceOperationsView({
             <option value="active">Active</option>
           </select>
           <input value={createDraft.description} onChange={(event) => setCreateDraft((current) => ({ ...current, description: event.target.value }))} placeholder="Description" />
+          <input value={createDraft.externalAppName} onChange={(event) => setCreateDraft((current) => ({ ...current, externalAppName: event.target.value }))} placeholder="External app name" />
+          <input value={createDraft.externalAppLink} onChange={(event) => setCreateDraft((current) => ({ ...current, externalAppLink: event.target.value }))} placeholder="App link or deep link" />
+          <input value={createDraft.playStoreUrl} onChange={(event) => setCreateDraft((current) => ({ ...current, playStoreUrl: event.target.value }))} placeholder="Google Play URL" />
+          <input value={createDraft.androidPackage} onChange={(event) => setCreateDraft((current) => ({ ...current, androidPackage: event.target.value }))} placeholder="Android package" />
           <button
             type="submit"
             disabled={

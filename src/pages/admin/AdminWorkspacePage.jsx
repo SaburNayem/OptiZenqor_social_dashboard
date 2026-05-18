@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../services/apiClient'
 import { DashboardView } from '../../components/AdminViews'
 import { AdminSidebar } from '../../components/layout/AdminSidebar'
@@ -17,10 +17,33 @@ export function AdminWorkspacePage() {
     globalNotice,
     settingsDraft,
     setSettingsDraft,
+    operationalSettings,
+    loadOperationalSettings,
     loadView,
     refreshActiveView,
     actions,
   } = useAdminDashboard()
+
+  const visibleNavigationItems = useMemo(
+    () =>
+      navigationItems.filter((item) => {
+        const key = `dashboard.navigation.${item.id}.visible`
+        if (operationalSettings[key] === false) {
+          return false
+        }
+        if (item.id === 'posts' && operationalSettings['admin.controls.posts.visible'] === false) {
+          return false
+        }
+        return true
+      }),
+    [operationalSettings],
+  )
+
+  useEffect(() => {
+    if (!isBootstrapping && session?.accessToken) {
+      void loadOperationalSettings()
+    }
+  }, [isBootstrapping, loadOperationalSettings, session?.accessToken])
 
   useEffect(() => {
     if (!isBootstrapping && session?.accessToken) {
@@ -28,10 +51,16 @@ export function AdminWorkspacePage() {
     }
   }, [activeItem.id, isBootstrapping, loadView, session?.accessToken])
 
+  useEffect(() => {
+    if (!visibleNavigationItems.some((item) => item.id === activeItem.id)) {
+      setActiveView(visibleNavigationItems[0]?.id ?? 'overview')
+    }
+  }, [activeItem.id, setActiveView, visibleNavigationItems])
+
   return (
     <main className="app-shell">
       <AdminSidebar
-        items={navigationItems}
+        items={visibleNavigationItems}
         activeItemId={activeItem.id}
         onSelect={setActiveView}
         onLogout={logout}
@@ -63,12 +92,16 @@ export function AdminWorkspacePage() {
             payload={viewState.payload}
             settingsDraft={settingsDraft}
             setSettingsDraft={setSettingsDraft}
+            operationalSettings={operationalSettings}
             onUpdateUser={actions.updateUser}
             onModerateContent={actions.moderateContent}
             onModerateComment={actions.moderateComment}
-            onUpdateReport={actions.updateReport}
+            onOpenReportTarget={actions.openReportTarget}
             onSaveSettings={actions.saveSettings}
             onRevokeAdminSession={actions.revokeAdminSession}
+            onCreateAdminStaff={actions.createAdminStaff}
+            onUpdateAdminStaff={actions.updateAdminStaff}
+            onDeleteAdminStaff={actions.deleteAdminStaff}
             onUpdatePremiumPlan={actions.updatePremiumPlan}
             onCreatePremiumPlan={actions.createPremiumPlan}
             onDeletePremiumPlan={actions.deletePremiumPlan}

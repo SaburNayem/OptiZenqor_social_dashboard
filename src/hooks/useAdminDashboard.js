@@ -2,6 +2,35 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { navigationItems } from '../config/navigation'
 import { useAdminSession } from './useAdminSession'
 
+function resolveReportTargetModule(report) {
+  const targetModule = report?.targetModule
+  if (targetModule && targetModule !== 'reports') {
+    return targetModule
+  }
+
+  switch (String(report?.targetType ?? report?.targetEntityType ?? '').toLowerCase()) {
+    case 'user':
+      return 'users'
+    case 'post':
+      return 'posts'
+    case 'reel':
+      return 'reels'
+    case 'story':
+      return 'stories'
+    case 'comment':
+    case 'post_comment':
+      return 'comments'
+    case 'marketplace':
+    case 'marketplace_product':
+    case 'product':
+      return 'marketplace'
+    case 'job':
+      return 'jobs'
+    default:
+      return ''
+  }
+}
+
 export function useAdminDashboard() {
   const { apiRequest } = useAdminSession()
   const [activeView, setActiveView] = useState('overview')
@@ -9,11 +38,20 @@ export function useAdminDashboard() {
   const viewQueriesRef = useRef({})
   const [globalNotice, setGlobalNotice] = useState('')
   const [settingsDraft, setSettingsDraft] = useState('{}')
+  const [operationalSettings, setOperationalSettings] = useState({})
 
   const activeItem = useMemo(
     () => navigationItems.find((item) => item.id === activeView) ?? navigationItems[0],
     [activeView],
   )
+
+  const loadOperationalSettings = useCallback(async () => {
+    const payload = await apiRequest('/admin/settings')
+    const nextSettings = payload?.data && typeof payload.data === 'object' ? payload.data : {}
+    setOperationalSettings(nextSettings)
+    setSettingsDraft(JSON.stringify(nextSettings, null, 2))
+    return nextSettings
+  }, [apiRequest])
 
   const loadView = useCallback(async (viewId, queryOverrides = null) => {
     const item = navigationItems.find((entry) => entry.id === viewId)
@@ -41,7 +79,9 @@ export function useAdminDashboard() {
       const payload = await apiRequest(endpoint)
       viewQueriesRef.current = { ...viewQueriesRef.current, [viewId]: nextQuery }
       if (item.id === 'settings') {
-        setSettingsDraft(JSON.stringify(payload.data, null, 2))
+        const nextSettings = payload?.data && typeof payload.data === 'object' ? payload.data : {}
+        setOperationalSettings(nextSettings)
+        setSettingsDraft(JSON.stringify(nextSettings, null, 2))
       }
       setViewState({ loading: false, error: '', payload })
     } catch (error) {
@@ -103,20 +143,60 @@ export function useAdminDashboard() {
     await loadView('reports')
   }, [apiRequest, loadView])
 
-  const saveSettings = useCallback(async (event) => {
-    event.preventDefault()
+  const openReportTarget = useCallback(async (report) => {
+    let targetModule = resolveReportTargetModule(report)
+    const targetType = String(report?.targetType ?? report?.targetEntityType ?? '').toLowerCase()
+    if (targetModule === 'posts' && operationalSettings['admin.controls.posts.visible'] === false) {
+      targetModule = 'content'
+    }
+    const targetSearch =
+      report?.targetSearch ??
+      report?.targetId ??
+      report?.targetEntityId ??
+      report?.targetUserId ??
+      ''
+
+    if (!targetModule || !targetSearch) {
+      setGlobalNotice('This report has no openable target. Copy the target ID and search manually.')
+      return
+    }
+
+    const query = {
+      page: 1,
+      limit: 20,
+      search: targetSearch,
+      ...(targetModule === 'content' && targetType ? { targetType } : {}),
+    }
+    viewQueriesRef.current = {
+      ...viewQueriesRef.current,
+      [targetModule]: {
+        ...(viewQueriesRef.current[targetModule] ?? {}),
+        ...query,
+      },
+    }
+    setActiveView(targetModule)
+    await loadView(targetModule, query)
+  }, [loadView, operationalSettings])
+
+  const saveSettings = useCallback(async (input) => {
     try {
-      const patch = JSON.parse(settingsDraft)
+      const patch =
+        input && typeof input === 'object' && !('preventDefault' in input)
+          ? input
+          : JSON.parse(settingsDraft)
       await apiRequest('/admin/settings', {
         method: 'PATCH',
         body: JSON.stringify({ patch }),
       })
       setGlobalNotice('Operational settings saved successfully.')
-      await loadView('settings')
+      await loadOperationalSettings()
+      if (activeItem.id === 'settings') {
+        await loadView('settings')
+      }
     } catch (error) {
       setGlobalNotice(error instanceof Error ? error.message : 'Unable to save settings.')
     }
-  }, [apiRequest, loadView, settingsDraft])
+  }, [activeItem.id, apiRequest, loadOperationalSettings, loadView, settingsDraft])
 
   const revokeAdminSession = useCallback(async (sessionId) => {
     await apiRequest(`/admin/auth/sessions/${sessionId}/revoke`, {
@@ -124,6 +204,36 @@ export function useAdminDashboard() {
     })
     setGlobalNotice('Admin session revoked successfully.')
     await loadView('adminSessions')
+  }, [apiRequest, loadView])
+
+  const createAdminStaff = useCallback(async (patch) => {
+    await apiRequest('/admin/staff', {
+      method: 'POST',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice(
+      patch.role === 'superadmin'
+        ? 'Superadmin staff created for dashboard access.'
+        : 'Admin staff created. This admin can sign into the app.',
+    )
+    await loadView('adminStaff')
+  }, [apiRequest, loadView])
+
+  const updateAdminStaff = useCallback(async (staffId, patch) => {
+    await apiRequest(`/admin/staff/${staffId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    })
+    setGlobalNotice('Admin staff updated successfully.')
+    await loadView('adminStaff')
+  }, [apiRequest, loadView])
+
+  const deleteAdminStaff = useCallback(async (staffId) => {
+    await apiRequest(`/admin/staff/${staffId}/remove`, {
+      method: 'POST',
+    })
+    setGlobalNotice('Admin staff removed successfully.')
+    await loadView('adminStaff')
   }, [apiRequest, loadView])
 
   const updatePremiumPlan = useCallback(async (planId, patch) => {
@@ -388,6 +498,8 @@ export function useAdminDashboard() {
     setGlobalNotice,
     settingsDraft,
     setSettingsDraft,
+    operationalSettings,
+    loadOperationalSettings,
     loadView,
     refreshActiveView,
     actions: {
@@ -395,8 +507,12 @@ export function useAdminDashboard() {
       moderateContent,
       moderateComment,
       updateReport,
+      openReportTarget,
       saveSettings,
       revokeAdminSession,
+      createAdminStaff,
+      updateAdminStaff,
+      deleteAdminStaff,
       updatePremiumPlan,
       createPremiumPlan,
       deletePremiumPlan,
