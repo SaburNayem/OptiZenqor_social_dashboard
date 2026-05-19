@@ -6,6 +6,7 @@ import {
   appSettingsSections,
   navigationItems,
   postAdminControls,
+  webNavigationSections,
 } from '../config/navigation'
 import { OverviewView } from '../pages/admin/overview/OverviewView'
 import { SupportOperationsView } from '../pages/admin/support/SupportOperationsView'
@@ -334,7 +335,10 @@ export function DashboardView({
   const [campaignDraft, setCampaignDraft] = useState({
     name: '',
     audience: 'all_users',
-    schedule: '',
+    schedule: 'now',
+    scheduleMode: 'now',
+    schedulePreset: 'now',
+    scheduledAt: '',
   })
   const [campaignEditDrafts, setCampaignEditDrafts] = useState({})
   const [adminStaffDraft, setAdminStaffDraft] = useState({
@@ -893,6 +897,13 @@ export function DashboardView({
       enabled: resolveBooleanSetting(operationalSettings, `app.settings.sections.${item.key}.visible`, true),
     }))
 
+    const webSectionItems = webNavigationSections.map((item) => ({
+      key: `web.navigation.${item.key}.visible`,
+      label: item.label,
+      description: item.description,
+      enabled: resolveBooleanSetting(operationalSettings, `web.navigation.${item.key}.visible`, true),
+    }))
+
     const postControlItems = postAdminControls.map((item) => ({
       ...item,
       enabled: resolveBooleanSetting(
@@ -942,6 +953,19 @@ export function DashboardView({
             }
             onHideAll={() =>
               onSaveSettings(buildTogglePatch(appSettingsSections, (item) => `app.settings.sections.${item.key}.visible`, false))
+            }
+            onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
+          />
+
+          <SettingsToggleSection
+            title="Web Section Visibility"
+            description="These switches are consumed by the public web frontend through `/app/config`."
+            items={webSectionItems}
+            onShowAll={() =>
+              onSaveSettings(buildTogglePatch(webNavigationSections, (item) => `web.navigation.${item.key}.visible`, true))
+            }
+            onHideAll={() =>
+              onSaveSettings(buildTogglePatch(webNavigationSections, (item) => `web.navigation.${item.key}.visible`, false))
             }
             onToggle={(key, checked) => onSaveSettings({ [key]: checked })}
           />

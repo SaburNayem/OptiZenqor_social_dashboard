@@ -6,7 +6,14 @@ import { useAdminSession } from '../../hooks/useAdminSession'
 export function AdminLoginPage() {
   const { login } = useAdminSession()
   const [loginState, setLoginState] = useState({ email: '', password: '', loading: false, error: '' })
-  const [resetState, setResetState] = useState({ loading: false, error: '', notice: '' })
+  const [resetState, setResetState] = useState({
+    loading: false,
+    completing: false,
+    step: 'idle',
+    error: '',
+    notice: '',
+  })
+  const [resetDraft, setResetDraft] = useState({ otp: '', password: '', confirmPassword: '' })
 
   async function handleLogin(event) {
     event.preventDefault()
@@ -33,6 +40,8 @@ export function AdminLoginPage() {
     if (!email) {
       setResetState({
         loading: false,
+        completing: false,
+        step: 'idle',
         error: 'Enter your admin email first so we can send a reset link.',
         notice: '',
       })
@@ -42,13 +51,15 @@ export function AdminLoginPage() {
     if (!API_BASE_URL) {
       setResetState({
         loading: false,
+        completing: false,
+        step: 'idle',
         error: 'Password reset requires VITE_API_BASE_URL to be configured.',
         notice: '',
       })
       return
     }
 
-    setResetState({ loading: true, error: '', notice: '' })
+    setResetState((current) => ({ ...current, loading: true, error: '', notice: '' }))
 
     try {
       const response = await fetch(`${API_BASE_URL}/admin/auth/forgot-password`, {
@@ -70,16 +81,105 @@ export function AdminLoginPage() {
 
       setResetState({
         loading: false,
+        completing: false,
+        step: 'verify',
         error: '',
-        notice: payload.message || 'If that admin account exists, a reset link has been sent.',
+        notice: payload.message || 'If that admin account exists, a password reset code has been sent.',
       })
     } catch (error) {
       setResetState({
         loading: false,
+        completing: false,
+        step: 'idle',
         error: error instanceof Error ? error.message : 'Password reset request failed.',
         notice: '',
       })
     }
+  }
+
+  async function handlePasswordResetComplete() {
+    const email = loginState.email.trim()
+    const otp = resetDraft.otp.trim()
+    const password = resetDraft.password
+
+    if (!otp || !password) {
+      setResetState((current) => ({
+        ...current,
+        error: 'Enter the reset code and your new password.',
+        notice: '',
+      }))
+      return
+    }
+
+    if (password.length < 8) {
+      setResetState((current) => ({
+        ...current,
+        error: 'New password must be at least 8 characters.',
+        notice: '',
+      }))
+      return
+    }
+
+    if (password !== resetDraft.confirmPassword) {
+      setResetState((current) => ({
+        ...current,
+        error: 'New password and confirmation must match.',
+        notice: '',
+      }))
+      return
+    }
+
+    if (!API_BASE_URL) {
+      setResetState((current) => ({
+        ...current,
+        error: 'Password reset requires VITE_API_BASE_URL to be configured.',
+        notice: '',
+      }))
+      return
+    }
+
+    setResetState((current) => ({ ...current, completing: true, error: '', notice: '' }))
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, password }),
+      })
+
+      let payload = {}
+      try {
+        payload = await response.json()
+      } catch {
+        payload = {}
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.message || 'Password reset failed.')
+      }
+
+      setLoginState((current) => ({ ...current, password: '', error: '' }))
+      setResetDraft({ otp: '', password: '', confirmPassword: '' })
+      setResetState({
+        loading: false,
+        completing: false,
+        step: 'idle',
+        error: '',
+        notice: payload.message || 'Password reset completed. Sign in with your new password.',
+      })
+    } catch (error) {
+      setResetState((current) => ({
+        ...current,
+        completing: false,
+        error: error instanceof Error ? error.message : 'Password reset failed.',
+        notice: '',
+      }))
+    }
+  }
+
+  function cancelPasswordReset() {
+    setResetDraft({ otp: '', password: '', confirmPassword: '' })
+    setResetState({ loading: false, completing: false, step: 'idle', error: '', notice: '' })
   }
 
   function clearResetFeedback() {
@@ -107,9 +207,13 @@ export function AdminLoginPage() {
         <AdminLoginForm
           loginState={loginState}
           resetState={resetState}
+          resetDraft={resetDraft}
           setLoginState={setLoginState}
+          setResetDraft={setResetDraft}
           onSubmit={handleLogin}
           onPasswordReset={handlePasswordReset}
+          onPasswordResetComplete={handlePasswordResetComplete}
+          onCancelPasswordReset={cancelPasswordReset}
           onClearResetFeedback={clearResetFeedback}
         />
       </section>

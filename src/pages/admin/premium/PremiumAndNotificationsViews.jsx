@@ -1,6 +1,202 @@
 import { extractItems } from '../../../services/apiClient'
 import { FilterForm, PaginationMeta, StatusBadge, Table } from '../../../components/common/AdminPrimitives'
 
+const audienceOptions = [
+  { value: 'all_users', label: 'All users' },
+  { value: 'verified_users', label: 'Verified users' },
+  { value: 'premium', label: 'Premium subscribers' },
+  { value: 'creators', label: 'Creators' },
+]
+
+const schedulePresetOptions = [
+  { value: 'now', label: 'Send now' },
+  { value: '15m', label: 'In 15 minutes' },
+  { value: '1h', label: 'In 1 hour' },
+  { value: '3h', label: 'In 3 hours' },
+  { value: 'tomorrow9', label: 'Tomorrow 9:00 AM' },
+  { value: 'custom', label: 'Pick date and time' },
+]
+
+function toDatetimeLocalValue(value) {
+  if (!value || String(value).toLowerCase() === 'now') {
+    return ''
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return String(value).slice(0, 16)
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return localDate.toISOString().slice(0, 16)
+}
+
+function getDefaultLaterValue() {
+  const date = new Date(Date.now() + 60 * 60 * 1000)
+  date.setSeconds(0, 0)
+  return toDatetimeLocalValue(date)
+}
+
+function resolveSchedulePreset(draft) {
+  if (draft.schedulePreset) {
+    return draft.schedulePreset
+  }
+  if (draft.scheduleMode === 'later' || (draft.schedule && String(draft.schedule).toLowerCase() !== 'now')) {
+    return 'custom'
+  }
+  return 'now'
+}
+
+function applySchedulePreset(draft, schedulePreset) {
+  return {
+    ...draft,
+    schedulePreset,
+    scheduleMode: schedulePreset === 'now' ? 'now' : 'later',
+    scheduledAt: schedulePreset === 'custom' ? draft.scheduledAt || getDefaultLaterValue() : '',
+    schedule: schedulePreset === 'now' ? 'now' : '',
+  }
+}
+
+function getPresetDate(schedulePreset) {
+  const date = new Date()
+  date.setSeconds(0, 0)
+
+  if (schedulePreset === '15m') {
+    date.setMinutes(date.getMinutes() + 15)
+    return date
+  }
+  if (schedulePreset === '1h') {
+    date.setHours(date.getHours() + 1)
+    return date
+  }
+  if (schedulePreset === '3h') {
+    date.setHours(date.getHours() + 3)
+    return date
+  }
+  if (schedulePreset === 'tomorrow9') {
+    date.setDate(date.getDate() + 1)
+    date.setHours(9, 0, 0, 0)
+    return date
+  }
+
+  return null
+}
+
+function buildCampaignSchedulePatch(draft) {
+  const schedulePreset = resolveSchedulePreset(draft)
+  const timezoneOffsetMinutes = new Date().getTimezoneOffset()
+
+  if (schedulePreset === 'now') {
+    return {
+      schedule: 'now',
+      scheduleMode: 'now',
+      deliveryMode: 'now',
+      sendNow: true,
+      scheduledAt: null,
+      timezoneOffsetMinutes,
+    }
+  }
+
+  const scheduledDate = schedulePreset === 'custom' ? new Date(draft.scheduledAt) : getPresetDate(schedulePreset)
+  const scheduledAt = scheduledDate && !Number.isNaN(scheduledDate.getTime()) ? scheduledDate.toISOString() : ''
+
+  return {
+    schedule: scheduledAt,
+    scheduleMode: 'later',
+    deliveryMode: 'later',
+    sendNow: false,
+    scheduledAt,
+    timezoneOffsetMinutes,
+  }
+}
+
+function createCampaignDraftFromItem(item) {
+  const rawSchedule = item.schedule ?? ''
+  const scheduledAt = item.scheduledAt ?? item.sendAt ?? (String(rawSchedule).toLowerCase() === 'now' ? '' : rawSchedule)
+  const scheduleMode = String(item.scheduleMode ?? item.deliveryMode ?? '').toLowerCase()
+  const hasLaterSchedule = scheduleMode === 'later' || Boolean(scheduledAt)
+
+  return {
+    name: item.name ?? '',
+    audience: item.audience ?? 'all_users',
+    schedule: hasLaterSchedule ? String(scheduledAt) : 'now',
+    scheduleMode: hasLaterSchedule ? 'later' : 'now',
+    schedulePreset: hasLaterSchedule ? 'custom' : 'now',
+    scheduledAt: hasLaterSchedule ? toDatetimeLocalValue(scheduledAt) : '',
+  }
+}
+
+function canSubmitCampaignDraft(draft, requireName = true) {
+  if (requireName && !draft.name?.trim()) {
+    return false
+  }
+
+  if (resolveSchedulePreset(draft) !== 'custom') {
+    return true
+  }
+
+  const scheduledDate = new Date(draft.scheduledAt)
+  return Boolean(draft.scheduledAt) && !Number.isNaN(scheduledDate.getTime())
+}
+
+function formatCampaignSchedule(item) {
+  if (item.scheduleLabel) {
+    return item.scheduleLabel
+  }
+
+  const rawSchedule = item.scheduledAt ?? item.sendAt ?? item.schedule
+  if (!rawSchedule || String(rawSchedule).toLowerCase() === 'now') {
+    return 'Now'
+  }
+
+  const date = new Date(rawSchedule)
+  return Number.isNaN(date.getTime()) ? rawSchedule : date.toLocaleString()
+}
+
+function AudienceSelect({ value, onChange }) {
+  return (
+    <select value={value} onChange={(event) => onChange(event.target.value)}>
+      {audienceOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function CampaignScheduleControls({ draft, onChange }) {
+  const schedulePreset = resolveSchedulePreset(draft)
+
+  return (
+    <>
+      <select value={schedulePreset} onChange={(event) => onChange(applySchedulePreset(draft, event.target.value))}>
+        {schedulePresetOptions.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {schedulePreset === 'custom' ? (
+        <input
+          type="datetime-local"
+          value={draft.scheduledAt ?? ''}
+          min={toDatetimeLocalValue(new Date())}
+          onChange={(event) =>
+            onChange({
+              ...draft,
+              schedule: event.target.value,
+              scheduleMode: 'later',
+              schedulePreset: 'custom',
+              scheduledAt: event.target.value,
+            })
+          }
+        />
+      ) : null}
+    </>
+  )
+}
+
 export function PremiumPlansView({
   payload,
   filters,
@@ -153,7 +349,7 @@ export function NotificationCampaignsView({
             item.name ?? item.title ?? item.id,
             item.audience ?? item.segmentId ?? 'N/A',
             <StatusBadge value={item.status} key={`${item.id}-status`} />,
-            item.schedule ?? item.createdAt ?? 'N/A',
+            formatCampaignSchedule(item),
             <div className="action-row" key={item.id}>
               <button type="button" onClick={() => onRunNotificationCampaignAction(item.id, 'send')} disabled={item.status === 'sent'}>
                 Send
@@ -174,22 +370,18 @@ export function NotificationCampaignsView({
         <h3>Update Notification Campaign</h3>
         <div className="stack">
           {items.map((item) => {
-            const draft = campaignEditDrafts[item.id] ?? {
-              name: item.name ?? '',
-              audience: item.audience ?? 'all_users',
-              schedule: item.schedule ?? '',
-            }
+            const draft = campaignEditDrafts[item.id] ?? createCampaignDraftFromItem(item)
 
             return (
               <form
                 key={`campaign-edit-${item.id}`}
-                className="inline-form"
+                className="inline-form notification-campaign-form"
                 onSubmit={(event) => {
                   event.preventDefault()
                   onUpdateNotificationCampaign(item.id, {
                     name: draft.name.trim(),
                     audience: draft.audience,
-                    schedule: draft.schedule.trim(),
+                    ...buildCampaignSchedulePatch(draft),
                   })
                 }}
               >
@@ -203,31 +395,27 @@ export function NotificationCampaignsView({
                   }
                   placeholder="Campaign name"
                 />
-                <select
+                <AudienceSelect
                   value={draft.audience}
-                  onChange={(event) =>
+                  onChange={(audience) =>
                     setCampaignEditDrafts((current) => ({
                       ...current,
-                      [item.id]: { ...draft, audience: event.target.value },
+                      [item.id]: { ...draft, audience },
                     }))
                   }
-                >
-                  <option value="all_users">All users</option>
-                  <option value="verified_users">Verified users</option>
-                  <option value="premium">Premium subscribers</option>
-                  <option value="creators">Creators</option>
-                </select>
-                <input
-                  value={draft.schedule}
-                  onChange={(event) =>
-                    setCampaignEditDrafts((current) => ({
-                      ...current,
-                      [item.id]: { ...draft, schedule: event.target.value },
-                    }))
-                  }
-                  placeholder="Schedule timestamp"
                 />
-                <button type="submit">Update</button>
+                <CampaignScheduleControls
+                  draft={draft}
+                  onChange={(nextDraft) =>
+                    setCampaignEditDrafts((current) => ({
+                      ...current,
+                      [item.id]: nextDraft,
+                    }))
+                  }
+                />
+                <button type="submit" disabled={!canSubmitCampaignDraft(draft)}>
+                  Update
+                </button>
               </form>
             )
           })}
@@ -237,18 +425,21 @@ export function NotificationCampaignsView({
       <article className="panel">
         <h3>Create Notification Campaign</h3>
         <form
-          className="inline-form"
+          className="inline-form notification-campaign-form"
           onSubmit={(event) => {
             event.preventDefault()
             onCreateNotificationCampaign({
               name: campaignDraft.name.trim(),
               audience: campaignDraft.audience,
-              schedule: campaignDraft.schedule.trim(),
+              ...buildCampaignSchedulePatch(campaignDraft),
             })
             setCampaignDraft({
               name: '',
               audience: 'all_users',
-              schedule: '',
+              schedule: 'now',
+              scheduleMode: 'now',
+              schedulePreset: 'now',
+              scheduledAt: '',
             })
           }}
         >
@@ -257,21 +448,15 @@ export function NotificationCampaignsView({
             onChange={(event) => setCampaignDraft((current) => ({ ...current, name: event.target.value }))}
             placeholder="Campaign name"
           />
-          <select
+          <AudienceSelect
             value={campaignDraft.audience}
-            onChange={(event) => setCampaignDraft((current) => ({ ...current, audience: event.target.value }))}
-          >
-            <option value="all_users">All users</option>
-            <option value="verified_users">Verified users</option>
-            <option value="premium">Premium subscribers</option>
-            <option value="creators">Creators</option>
-          </select>
-          <input
-            value={campaignDraft.schedule}
-            onChange={(event) => setCampaignDraft((current) => ({ ...current, schedule: event.target.value }))}
-            placeholder="Schedule timestamp"
+            onChange={(audience) => setCampaignDraft((current) => ({ ...current, audience }))}
           />
-          <button type="submit" disabled={!campaignDraft.name.trim() || !campaignDraft.schedule.trim()}>
+          <CampaignScheduleControls
+            draft={campaignDraft}
+            onChange={(nextDraft) => setCampaignDraft(nextDraft)}
+          />
+          <button type="submit" disabled={!canSubmitCampaignDraft(campaignDraft)}>
             Create campaign
           </button>
         </form>

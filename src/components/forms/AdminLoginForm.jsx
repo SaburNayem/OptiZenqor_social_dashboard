@@ -3,9 +3,13 @@ import { useState } from 'react'
 export function AdminLoginForm({
   loginState,
   resetState,
+  resetDraft,
   setLoginState,
+  setResetDraft,
   onSubmit,
   onPasswordReset,
+  onPasswordResetComplete,
+  onCancelPasswordReset,
   onClearResetFeedback = () => {},
 }) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -54,6 +58,55 @@ export function AdminLoginForm({
           {resetState.loading ? 'Sending reset link...' : 'Forgot password?'}
         </button>
       </div>
+      {resetState.step === 'verify' ? (
+        <div className="password-reset-panel">
+          <label>
+            <span>Reset code</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={resetDraft.otp}
+              onChange={(event) => {
+                onClearResetFeedback()
+                setResetDraft((current) => ({ ...current, otp: event.target.value }))
+              }}
+            />
+          </label>
+          <label>
+            <span>New password</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={resetDraft.password}
+              onChange={(event) => {
+                onClearResetFeedback()
+                setResetDraft((current) => ({ ...current, password: event.target.value }))
+              }}
+            />
+          </label>
+          <label>
+            <span>Confirm new password</span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={resetDraft.confirmPassword}
+              onChange={(event) => {
+                onClearResetFeedback()
+                setResetDraft((current) => ({ ...current, confirmPassword: event.target.value }))
+              }}
+            />
+          </label>
+          <div className="password-reset-actions">
+            <button type="button" disabled={resetState.completing} onClick={onPasswordResetComplete}>
+              {resetState.completing ? 'Resetting password...' : 'Reset password'}
+            </button>
+            <button className="secondary-button" type="button" onClick={onCancelPasswordReset}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
       <button type="submit" disabled={loginState.loading}>
         {loginState.loading ? 'Signing in...' : 'Sign in'}
       </button>

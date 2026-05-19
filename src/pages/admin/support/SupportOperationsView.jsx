@@ -46,13 +46,32 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
   const [detailNotice, setDetailNotice] = useState('')
   const [detailRefreshKey, setDetailRefreshKey] = useState(0)
   const [configNotice, setConfigNotice] = useState('')
-  const [configDraft, setConfigDraft] = useState({
-    enabled: true,
-    showOnLogin: true,
-    allowImages: true,
-    headerText: 'Need help signing in?',
-    bodyText: 'Send a message with an optional screenshot and support will reply from the admin dashboard.',
-  })
+  const incomingConfigDraft = useMemo(() => ({
+    enabled: supportHelpConfig.enabled !== false,
+    showOnLogin: supportHelpConfig.showOnLogin !== false,
+    allowImages: supportHelpConfig.allowImages !== false,
+    headerText: supportHelpConfig.headerText ?? 'Need help signing in?',
+    bodyText:
+      supportHelpConfig.bodyText ??
+      'Send a message with an optional screenshot and support will reply from the admin dashboard.',
+  }), [
+    supportHelpConfig.enabled,
+    supportHelpConfig.showOnLogin,
+    supportHelpConfig.allowImages,
+    supportHelpConfig.headerText,
+    supportHelpConfig.bodyText,
+  ])
+  const incomingConfigDraftKey = JSON.stringify(incomingConfigDraft)
+  const [configDraftOverride, setConfigDraftOverride] = useState(null)
+  const configDraft =
+    configDraftOverride?.key === incomingConfigDraftKey ? configDraftOverride.draft : incomingConfigDraft
+  function setConfigDraft(update) {
+    setConfigDraftOverride((current) => {
+      const baseDraft = current?.key === incomingConfigDraftKey ? current.draft : incomingConfigDraft
+      const nextDraft = typeof update === 'function' ? update(baseDraft) : update
+      return { key: incomingConfigDraftKey, draft: nextDraft }
+    })
+  }
   const [updateDraft, setUpdateDraft] = useState({
     status: 'open',
     priority: 'normal',
@@ -61,24 +80,6 @@ export function SupportOperationsView({ payload, filters, onUpdateSupportTicket,
     adminNote: '',
     replyMessage: '',
   })
-
-  useEffect(() => {
-    setConfigDraft({
-      enabled: supportHelpConfig.enabled !== false,
-      showOnLogin: supportHelpConfig.showOnLogin !== false,
-      allowImages: supportHelpConfig.allowImages !== false,
-      headerText: supportHelpConfig.headerText ?? 'Need help signing in?',
-      bodyText:
-        supportHelpConfig.bodyText ??
-        'Send a message with an optional screenshot and support will reply from the admin dashboard.',
-    })
-  }, [
-    supportHelpConfig.enabled,
-    supportHelpConfig.showOnLogin,
-    supportHelpConfig.allowImages,
-    supportHelpConfig.headerText,
-    supportHelpConfig.bodyText,
-  ])
 
   const resolvedSelectedTicketId =
     tickets.some((ticket) => ticket.id === selectedSupportTicketId)
