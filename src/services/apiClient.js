@@ -1,6 +1,11 @@
-const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
+const DEPLOYED_API_BASE_URL = 'https://opti-zenqor-social-backend.vercel.app'
 
-export const API_BASE_URL = configuredBaseUrl
+function resolveApiBaseUrl() {
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/+$/, '')
+  return configuredBaseUrl || DEPLOYED_API_BASE_URL
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 export const SESSION_STORAGE_KEY = 'optizenqor_admin_session'
 
 function assertApiBaseUrl() {
